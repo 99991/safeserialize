@@ -13,6 +13,7 @@ def test_numpy_serialization():
         "3d array of doubles": np.random.rand(1, 2, 3),
         "1d array of ints": np.arange(5),
         "bool array": np.random.rand(5) < 0.5,
+        "object array": np.array([{"one": 1}, None, {2: "two"}, {3, 4}]),
         "x.sum()": x.sum(),
         "bool": np.bool_(True),
         "int8": np.int8(-128),

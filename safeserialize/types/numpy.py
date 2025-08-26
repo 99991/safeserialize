@@ -1,7 +1,7 @@
 import struct
 import ast
 
-from ..core import writer, reader
+from ..core import writer, reader, write_list, read_list
 
 _allowed_dtypes = {
     "bool",
@@ -9,6 +9,8 @@ _allowed_dtypes = {
     "int8", "int16", "int32", "int64",
     "float32", "float64",
     "complex64", "complex128",
+    "datetime64[ns]", "timedelta64[ns]",
+    "object",
 }
 
 @writer("numpy.ndarray")
@@ -61,7 +63,11 @@ def write_ndarray(data, out, alignment=64):
     assert len(header) % 64 == 0
 
     out.write(header)
-    out.write(data.tobytes())
+
+    if dtype == "object":
+        write_list(data.ravel(order="C"), out)
+    else:
+        out.write(data.tobytes())
 
 @reader("numpy.ndarray")
 def read_ndarray(f):
@@ -109,15 +115,22 @@ def read_ndarray(f):
         "|u1", "<u2", "<u4", "<u8",
         "<f2", "<f4", "<f8",
         "<c8", "<c16",
-    }
+        "<m8[ns]",
+        "<M8[ns]",
+        "|O",
+    }, f"NumPy dtype {repr(descr)} not implemented"
 
-    itemsize = int(descr[2:])
+    if descr == "|O":
+        objects = read_list(f)
+        return np.array(objects, dtype=object).reshape(shape)
+    else:
+        itemsize = int(descr[2:4].rstrip("["))
 
-    num_bytes = np.prod(shape) * itemsize
+        num_bytes = np.prod(shape) * itemsize
 
-    buf = f.read(num_bytes)
+        buf = f.read(num_bytes)
 
-    return np.frombuffer(buf, dtype=descr).reshape(shape)
+        return np.frombuffer(buf, dtype=descr).reshape(shape)
 
 @writer("numpy.bool")
 def write_bool(data, out):
