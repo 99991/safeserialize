@@ -37,45 +37,50 @@ def reader(type_name):
     return decorator
 
 class Serializer:
-    def __init__(self, file, writers=None, version=VERSION):
+    def __init__(self, file, writers=None, header=True, version=VERSION):
         if writers is None:
             writers = {}
 
-        file.write(FILE_SIGNATURE)
-        file.write(struct.pack("<I", version))
+        if header:
+            file.write(FILE_SIGNATURE)
+            file.write(struct.pack("<I", version))
 
-        self.file = file
-        self.version = version
+        self._file = file
+        self._version = version
         self._writers = writers
 
     def write(self, data: bytes):
         """This write function mimics file.write. It does not serialize."""
-        self.file.write(data)
+        self._file.write(data)
 
     def tell(self):
-        return self.file.tell()
+        return self._file.tell()
 
 class Deserializer:
-    def __init__(self, file, readers=None):
+    def __init__(self, file, readers=None, header=True, version=None):
         if readers is None:
             readers = {}
 
-        self.file = file
+        self._file = file
         self._readers = readers
 
-        signature = self.read(len(FILE_SIGNATURE))
+        if header:
+            signature = self.read(len(FILE_SIGNATURE))
 
-        if signature != FILE_SIGNATURE:
-            raise ValueError(f"Invalid file signature {repr(signature)}")
+            if signature != FILE_SIGNATURE:
+                raise ValueError(f"Invalid file signature {repr(signature)}")
 
-        version, = struct.unpack("<I", self.read(4))
+            version, = struct.unpack("<I", self.read(4))
+        else:
+            if version is None:
+                version = VERSION
 
-        self.version = version
+        self._version = version
 
     def read(self, n):
         """Read bytes from underlying file. Does not deserialize.
         Throws ValueError if too few bytes were read."""
-        data = self.file.read(n)
+        data = self._file.read(n)
 
         if len(data) != n:
             raise ValueError(f"Expected {n} bytes, got {len(data)}")
@@ -150,26 +155,27 @@ def read(f):
     else:
         raise TypeError(f"Reader not implemented for {repr(data_type)}")
 
-def dump(obj, file, writers=None):
+def dump(obj, file, writers=None, header=True):
     """Serialize object to a file."""
-    serializer = Serializer(file, writers)
+    serializer = Serializer(file, writers, header)
     write(obj, serializer)
-    serializer.file.flush()
+    file.flush()
 
-def dumps(obj, writers=None):
+def dumps(obj, writers=None, header=True):
     """Serialize object to bytes."""
-    serializer = Serializer(io.BytesIO(), writers)
+    out = io.BytesIO()
+    serializer = Serializer(out, writers, header)
     write(obj, serializer)
-    return serializer.file.getvalue()
+    return out.getvalue()
 
-def load(file, readers=None):
+def load(file, readers=None, header=True, version=None):
     """Deserialize object from a file."""
-    deserializer = Deserializer(file, readers)
+    deserializer = Deserializer(file, readers, header, version)
     return read(deserializer)
 
-def loads(data, readers=None):
+def loads(data, readers=None, header=True, version=None):
     """Deserialize object from a file."""
-    deserializer = Deserializer(io.BytesIO(data), readers)
+    deserializer = Deserializer(io.BytesIO(data), readers, header, version)
     return read(deserializer)
 
 def read_int(f):

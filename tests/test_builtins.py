@@ -56,6 +56,17 @@ def test_builtins():
 
     assert data == deserialized, f"{data} != {deserialized}"
 
+def test_headerless():
+    data = 1
+
+    serialized = dumps(data, header=False)
+
+    assert len(serialized) == 1
+
+    deserialized = loads(serialized, header=False)
+
+    assert data == deserialized
+
 def test_constants():
     assert loads(dumps(True)) is True
     assert loads(dumps(False)) is False
