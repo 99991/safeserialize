@@ -7,7 +7,7 @@ _allowed_dtypes = {
     "bool",
     "uint8", "uint16", "uint32", "uint64",
     "int8", "int16", "int32", "int64",
-    "float32", "float64",
+    "float16", "float32", "float64",
     "complex64", "complex128",
     "datetime64[ns]", "timedelta64[ns]",
     "object",
@@ -130,7 +130,7 @@ def read_ndarray(f):
 
         buf = f.read(num_bytes)
 
-        return np.frombuffer(buf, dtype=descr).reshape(shape)
+        return np.frombuffer(buf, dtype=descr).reshape(shape).copy()
 
 @writer("numpy.bool")
 def write_bool(data, out):
@@ -158,6 +158,15 @@ def write_int64(data, out):
 def read_int64(f):
     import numpy as np
     return np.int64(struct.unpack("<q", f.read(8))[0])
+
+@writer("numpy.float16")
+def write_float16(data, out):
+    out.write(struct.pack("<e", data))
+
+@reader("numpy.float16")
+def read_float16(f):
+    import numpy as np
+    return np.float16(struct.unpack("<e", f.read(2))[0])
 
 @writer("numpy.float32")
 def write_float32(data, out):

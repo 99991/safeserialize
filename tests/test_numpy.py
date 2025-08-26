@@ -24,6 +24,7 @@ def test_numpy_serialization():
         "uint16": np.uint16(65535),
         "uint32": np.uint32(4294967295),
         "uint64": np.uint64(18446744073709551615),
+        "float16": np.float16(2.71828),
         "float32": np.float32(3.14),
         "float64": np.float64(3.141592653589793),
         "complex64": np.complex64(1 + 2j),
