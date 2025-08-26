@@ -3,12 +3,14 @@ VERSION = 1
 # https://www.libpng.org/pub/png/spec/1.2/PNG-Rationale.html#R.PNG-file-signature
 FILE_SIGNATURE = b'\x89SER\r\n\x1a\n'
 
-TYPE_HEADER = 1
+TYPE_BOOL_FALSE = 0
+TYPE_BOOL_TRUE = 1
 TYPE_INT1 = 2
 TYPE_INT2 = 3
 TYPE_INT4 = 4
 TYPE_INT8 = 5
 TYPE_LARGE_INT = 6
+TYPE_INT_VALUE_0 = 48 # ord('0')
 
 builtins = {
     # String/bytes

@@ -55,3 +55,10 @@ def test_builtins():
         deserialized = load(temp_file)
 
     assert data == deserialized, f"{data} != {deserialized}"
+
+def test_constants():
+    assert loads(dumps(True)) is True
+    assert loads(dumps(False)) is False
+    assert loads(dumps(None)) is None
+    assert loads(dumps(...)) is ...
+    assert loads(dumps(NotImplemented)) is NotImplemented

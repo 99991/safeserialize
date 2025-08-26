@@ -5,11 +5,14 @@ from .constants import (
     builtins,
     VERSION,
     FILE_SIGNATURE,
+    TYPE_BOOL_FALSE,
+    TYPE_BOOL_TRUE,
     TYPE_INT1,
     TYPE_INT2,
     TYPE_INT4,
     TYPE_LARGE_INT,
     TYPE_CUSTOM,
+    TYPE_INT_VALUE_0,
 )
 
 writers = {}
@@ -81,6 +84,14 @@ class Deserializer:
 
 def write(data, out):
     """Serialize data object and write it to output stream."""
+
+    if data is False:
+        out.write(bytes([TYPE_BOOL_FALSE]))
+        return
+
+    if data is True:
+        out.write(bytes([TYPE_BOOL_TRUE]))
+        return
 
     # Ints always include their type byte,
     # so they have to be handled differently from the other types.
@@ -182,7 +193,9 @@ def num_bytes_signed_int(data):
 
 def write_int(data, out):
     # Ints are encoded with different type IDs based on their size.
-    if -128 <= data <= 127:
+    if 0 <= data < 10:
+        out.write(bytes([TYPE_INT_VALUE_0 + data]))
+    elif -128 <= data <= 127:
         out.write(bytes([TYPE_INT1]))
         out.write(struct.pack("<b", data))
     elif -32768 <= data <= 32767:
@@ -196,6 +209,11 @@ def write_int(data, out):
         num_bytes = num_bytes_signed_int(data)
         out.write(struct.pack("<Q", num_bytes))
         out.write(data.to_bytes(num_bytes, byteorder="little", signed=True))
+
+for i in range(10):
+    def make_reader(i):
+        return lambda _: i
+    reader(TYPE_INT_VALUE_0 + i)(make_reader(i))
 
 @reader(TYPE_INT1)
 def read_int1(f):
@@ -213,6 +231,14 @@ def read_int4(f):
 def read_large_int(f):
     num_bytes, = struct.unpack("<Q", f.read(8))
     return int.from_bytes(f.read(num_bytes), byteorder="little", signed=True)
+
+@reader(TYPE_BOOL_FALSE)
+def read_false(f):
+    return False
+
+@reader(TYPE_BOOL_TRUE)
+def read_true(f):
+    return True
 
 @writer("builtins.list")
 def write_list(data, out):
