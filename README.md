@@ -96,3 +96,27 @@ Then, run `pytest` from the root directory:
 ```bash
 pytest
 ```
+
+## Contributing
+
+Want to serialize a data type that is not yet supported?
+Open an [issue](https://github.com/99991/safeserialize/issues) or make a [pull request](https://github.com/99991/safeserialize/pulls).
+
+## FAQ
+
+* Q: I want to serialize as a string, not as bytes.
+* A: No problem! Simply encode the binary data with `base64`:
+
+```python
+from safeserialize import dumps, loads
+import base64
+
+data = {b"Hello": b"World!"}
+
+serialized_str = base64.b64encode(dumps(data)).decode("ascii")
+
+assert isinstance(serialized_str, str)
+
+deserialized_data = loads(base64.b64decode(serialized_str))
+print("Serialization and deserialization successful!")
+```
