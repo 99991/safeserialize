@@ -1,0 +1,16 @@
+[project]
+name = "safeserialize"
+version = "0.0.1"
+authors = [
+    { name = "Thomas Germer", email = "Thomas.Germer@hhu.de" }
+]
+description = "A safe serialization library for Python"
+readme = "README.md"
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+test = ["pytest", "numpy", "scipy"]
+
+[project.urls]
+"Homepage" = "https://github.com/99991/safeserialize"
+"Bug Tracker" = "https://github.com/99991/safeserialize/issues"
