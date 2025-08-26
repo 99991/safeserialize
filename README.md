@@ -77,6 +77,8 @@ assert data == deserialized_data
 print("Serialization and deserialization successful!")
 ```
 
+For more usage examples, see the [tests](https://github.com/99991/safeserialize/tree/main/tests).
+
 ## Running Tests
 
 To run the tests, first clone the repository and install the development dependencies:
