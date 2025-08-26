@@ -9,6 +9,7 @@ This library supports
 - Python's builtin data types (`set`, `frozenset`, `dict`, `bytes`, ...),
 - many types from Python's standard library (`datetime`, `decimal`, `Counter`, `deque`, ...),
 - NumPy arrays and scalar data types,
+- PyTorch tensors,
 - SciPy BSR, CSR, CSC and COO sparse matrices,
 - (experimental) Pandas support,
 - custom user-defined types.
