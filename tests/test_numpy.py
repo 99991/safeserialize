@@ -70,3 +70,8 @@ def test_read_ndarray():
 
     assert np.array_equal(a, b)
     assert np.array_equal(a, b)
+
+def test_transposed():
+    A = np.random.rand(2, 3)
+
+    assert np.array_equal(A.T, loads(dumps(A.T)))

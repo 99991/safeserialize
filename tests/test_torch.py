@@ -29,3 +29,8 @@ def roundtrip(x):
     s = dumps(x)
     y = loads(s)
     assert torch.equal(x, y)
+
+def test_transposed():
+    A = torch.rand(2, 3)
+
+    roundtrip(A)
