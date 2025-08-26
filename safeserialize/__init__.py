@@ -8,7 +8,7 @@ from .core import (
 from . import types
 
 # Import all type modules to register their readers and writers
-from .types import numpy, scipy
+from .types import numpy, scipy, pandas
 from .types.stdlib import (
     datetime,
     decimal,

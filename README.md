@@ -10,6 +10,7 @@ This library supports
 - many types from Python's standard library (`datetime`, `decimal`, `Counter`, `deque`, ...),
 - NumPy arrays and scalar data types,
 - SciPy BSR, CSR, CSC and COO sparse matrices,
+- (experimental) Pandas support,
 - custom user-defined types.
 
 Unlike [`pickle`](https://docs.python.org/3/library/pickle.html),
