@@ -159,7 +159,6 @@ def dump(obj, file, writers=None, header=True):
     """Serialize object to a file."""
     serializer = Serializer(file, writers, header)
     write(obj, serializer)
-    file.flush()
 
 def dumps(obj, writers=None, header=True):
     """Serialize object to bytes."""
