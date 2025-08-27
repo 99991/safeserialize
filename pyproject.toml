@@ -1,6 +1,6 @@
 [project]
 name = "safeserialize"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
     { name = "Thomas Germer", email = "Thomas.Germer@hhu.de" }
 ]
