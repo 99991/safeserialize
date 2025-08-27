@@ -115,8 +115,32 @@ data = {b"Hello": b"World!"}
 
 serialized_str = base64.b64encode(dumps(data)).decode("ascii")
 
+# The serialized data is a string
 assert isinstance(serialized_str, str)
 
 deserialized_data = loads(base64.b64decode(serialized_str))
+print("Serialization and deserialization successful!")
+```
+
+* Q: The serialized data is too big. How do I make it smaller?
+* A: Use compression, for example `zlib` (mature) or `bz2` (high compression, slower). If you are willing to install third-party libraries, `lz4` (less compression, but very fast decompression) or `zstd` (high compression ratio, very high decompression speed) are also an option.
+
+```python
+from safeserialize import dumps, loads
+import bz2
+
+data = [{b"Hello": b"World!"}] * 100
+
+serialized_bytes = dumps(data)
+
+compressed_bytes = bz2.compress(serialized_bytes)
+
+percent = len(compressed_bytes) * 100 / len(serialized_bytes)
+
+print(f"Compressed to {percent:.1f} % of original size")
+
+decompressed_bytes = bz2.decompress(compressed_bytes)
+
+deserialized_data = loads(decompressed_bytes)
 print("Serialization and deserialization successful!")
 ```
