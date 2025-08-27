@@ -19,7 +19,7 @@ def test_stdlib():
         "time": a.time(),
         "timedelta": a - b,
         "timedelta_negative": b - a,
-        "uuid": uuid.uuid5(uuid.NAMESPACE_DNS, b"example.com"),
+        "uuid": uuid.uuid5(uuid.NAMESPACE_DNS, "example.com"),
         "path": Path("some/relative/path"),
         "deque": deque([1, 2, 3]),
         "counter": Counter("banana"),
