@@ -77,35 +77,36 @@ def write_series(series, out):
     import pandas
 
     values = series.values
-    dtype = values.dtype
-    dtype_name = dtype.name
+    values_dtype_name = values.dtype.name
 
     write(VERSION, out)
     write(series.name, out)
-    write(dtype_name, out)
+    write(series.dtype, out)
+    write(series.values.dtype, out)
+    write(series.index, out)
 
-    if dtype_name == "string":
+    if values_dtype_name == "string":
         assert isinstance(values, pandas.core.arrays.string_.StringArray)
         write(values.tolist(), out)
 
-    elif dtype_name in _pandas_dtypes:
+    elif values_dtype_name in _pandas_dtypes:
         write(values.isna(), out)
         values_numpy = values._data
         assert isinstance(values_numpy, numpy.ndarray)
         write(values_numpy, out)
 
-    elif dtype_name in _numpy_dtypes:
+    elif values_dtype_name in _numpy_dtypes:
         assert isinstance(values, numpy.ndarray)
         write(values, out)
 
-    elif dtype_name == "category":
+    elif values_dtype_name == "category":
         write(values.categories, out)
         assert isinstance(values.codes, numpy.ndarray)
         write(values.codes, out)
         write(values.ordered, out)
 
     else:
-        raise ValueError(f"Pandas dtype {dtype_name} not implemented")
+        raise ValueError(f"Pandas dtype {values_dtype_name} not implemented")
 
 @reader("pandas.core.series.Series")
 def read_series(f):
@@ -115,34 +116,42 @@ def read_series(f):
     version = read(f)
     assert version == VERSION
     series_name = read(f)
-    dtype_name = read(f)
+    series_dtype = read(f)
+    values_dtype = read(f)
+    values_dtype_name = values_dtype.name
+    index = read(f)
 
-    if dtype_name == "string":
+    if values_dtype_name == "string":
         values = read(f)
         array = pd.array(values, dtype="string")
-        series = pd.Series(array, dtype="string")
+        series = pd.Series(array, dtype="string", index=index)
 
-    elif dtype_name in _numpy_dtypes:
-        values_np = read(f)
-        series = pd.Series(values_np, dtype=dtype_name)
+    elif values_dtype_name in _numpy_dtypes:
+        values = read(f)
+        #series = _from_numpy(pd.Series, series_dtype, data=values, index=index)
 
-    elif dtype_name in _pandas_dtypes:
+        if isinstance(series_dtype, pd.DatetimeTZDtype):
+            # Create series from timezone-less dtype
+            series = pd.Series(values, dtype=series_dtype.base, index=index)
+            # and apply actual dtype afterwards
+            series = series.dt.tz_localize("UTC").dt.tz_convert(series_dtype.tz)
+        else:
+            series = pd.Series(values, dtype=series_dtype, index=index)
+
+    elif values_dtype_name in _pandas_dtypes:
         isna = read(f)
         assert isna.dtype == np.bool_
-        values_np = read(f)
-        series = pd.Series(values_np, dtype=dtype_name)
+        values = read(f)
+        series = pd.Series(values, dtype=series_dtype, index=index)
         series = series.mask(isna)
 
-    elif dtype_name == "category":
+    elif values_dtype_name == "category":
         categories = read(f)
         codes = read(f)
-        ordered = read(f)
-        categorical = pd.Categorical.from_codes(
-            codes=codes,
-            categories=categories,
-            ordered=ordered,
-            dtype=dtype_name)
-        series = pd.Series(categorical)
+        ordered = read(f) # unused, already stored in categories
+        assert isinstance(ordered, bool)
+        categorical = pd.Categorical.from_codes(codes, categories)
+        series = pd.Series(categorical, dtype=series_dtype, index=index)
 
     else:
         raise ValueError(f"Pandas dtype {dtype_name} not implemented")
@@ -182,3 +191,98 @@ def read_dataframe(f):
     assert df.shape == (m, n)
 
     return df
+
+pandas_dtypes = [
+    ("pandas.core.arrays.integer.Int8Dtype", "Int8Dtype"),
+    ("pandas.core.arrays.integer.Int16Dtype", "Int16Dtype"),
+    ("pandas.core.arrays.integer.Int32Dtype", "Int32Dtype"),
+    ("pandas.core.arrays.integer.Int64Dtype", "Int64Dtype"),
+    ("pandas.core.arrays.integer.UInt8Dtype", "UInt8Dtype"),
+    ("pandas.core.arrays.integer.UInt16Dtype", "UInt16Dtype"),
+    ("pandas.core.arrays.integer.UInt32Dtype", "UInt32Dtype"),
+    ("pandas.core.arrays.integer.UInt64Dtype", "UInt64Dtype"),
+    ("pandas.core.arrays.floating.Float32Dtype", "Float32Dtype"),
+    ("pandas.core.arrays.floating.Float64Dtype", "Float64Dtype"),
+    ("pandas.core.arrays.boolean.BooleanDtype", "BooleanDtype"),
+    ("pandas.core.arrays.string_.StringDtype", "StringDtype"),
+]
+
+for dtype_path, dtype_name in pandas_dtypes:
+    def make_dtype_reader_writer(dtype_path, dtype_name):
+        @writer(dtype_path)
+        def writer_func(data, out):
+            pass
+
+        @reader(dtype_path)
+        def reader_func(f):
+            import pandas as pd
+            return getattr(pd, dtype_name)()
+
+    make_dtype_reader_writer(dtype_path, dtype_name)
+
+@writer("pandas.core.dtypes.dtypes.CategoricalDtype")
+def write_CategoricalDtype(data, out):
+    import pandas
+    assert isinstance(data.categories, pandas.core.indexes.base.Index)
+    write(data.categories, out)
+    write(data.ordered, out)
+
+@reader("pandas.core.dtypes.dtypes.CategoricalDtype")
+def read_CategoricalDtype(f):
+    import pandas
+    categories = read(f)
+    ordered = read(f)
+    return pandas.CategoricalDtype(categories, ordered=ordered)
+
+@writer("pandas.core.dtypes.dtypes.DatetimeTZDtype")
+def write_DatetimeTZDtype(data, out):
+    write(data.unit, out)
+    write(data.tz, out)
+
+@reader("pandas.core.dtypes.dtypes.DatetimeTZDtype")
+def read_DatetimeTZDtype(f):
+    unit = read(f)
+    tz = read(f)
+    import pandas
+    return pandas.DatetimeTZDtype(unit, tz)
+
+@writer("pandas._libs.tslibs.timedeltas.Timedelta")
+def write_Timedelta(data, out):
+    write(data.value, out)
+    write(data.unit, out)
+
+@reader("pandas._libs.tslibs.timedeltas.Timedelta")
+def read_Timedelta(f):
+    value = read(f)
+    unit = read(f)
+    import pandas
+    return pandas.Timedelta(value, unit=unit)
+
+@writer("pandas.core.indexes.datetimes.DatetimeIndex")
+def write_DatetimeIndex(index, out):
+    write(index.values, out)
+    write(index.tz, out)
+
+@reader("pandas.core.indexes.datetimes.DatetimeIndex")
+def read_DatetimeIndex(f):
+    import pandas as pd
+    values = read(f)
+    tz = read(f)
+    values = pd.Series(values)
+    values = values.dt.tz_localize("UTC").dt.tz_convert(tz)
+    return pd.DatetimeIndex(values)
+
+# TODO implement other indexes listed here:
+# https://pandas.pydata.org/docs/reference/api/pandas.Index.html
+
+@writer("pandas.core.indexes.category.CategoricalIndex")
+def write_CategoricalIndex(index, out):
+    write(index.categories, out)
+    write(index.ordered, out)
+
+@reader("pandas.core.indexes.category.CategoricalIndex")
+def read_CategoricalIndex(f):
+    categories = read(f)
+    ordered = read(f)
+    import pandas as pd
+    return pd.CategoricalIndex(categories, ordered=ordered)

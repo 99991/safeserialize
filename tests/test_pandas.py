@@ -2,6 +2,17 @@ from safeserialize import dumps, loads
 import pandas as pd
 import numpy as np
 import random
+from safeserialize.types.numpy import _allowed_dtypes as numpy_dtypes
+
+def roundtrip_series(s):
+    serialized_data = dumps(s)
+    deserialized_series = loads(serialized_data)
+    pd.testing.assert_series_equal(s, deserialized_series)
+
+def roundtrip_df(df):
+    serialized_data = dumps(df)
+    deserialized_df = loads(serialized_data)
+    pd.testing.assert_frame_equal(df, deserialized_df)
 
 def test_pandas():
     a = pd.Series([1, 2, None, 4], dtype="Int64", name="int_nullable")
@@ -22,11 +33,7 @@ def test_pandas():
     series = [a, a, b, c, d, e, f, g, h, i, j]
 
     for s in series:
-        serialized_data = dumps(s)
-
-        deserialized_series = loads(serialized_data)
-
-        pd.testing.assert_series_equal(s, deserialized_series)
+        roundtrip_series(s)
 
     df = pd.concat(series, axis=1)
 
@@ -58,13 +65,63 @@ def test_categories():
         values = [random.choice(categories) for _ in range(50)]
         s = pd.Series(values).astype("category")
 
-        serialized_data = dumps(s)
+        roundtrip_series(s)
 
-        deserialized_series = loads(serialized_data)
+    dtype = pd.CategoricalDtype(["n", "b", "a"], ordered=True)
+    s = pd.Series(list("banana"), dtype=dtype)
 
-        pd.testing.assert_series_equal(s, deserialized_series)
+    roundtrip_series(s)
 
-def roundtrip_df(df):
-    serialized_data = dumps(df)
-    deserialized_df = loads(serialized_data)
-    pd.testing.assert_frame_equal(df, deserialized_df)
+    index = pd.CategoricalIndex([3, 2, 1, 2, 3, 4], categories=[1, 2, 3])
+
+    series = pd.Series([0, 1, 2, 3, 4, 5] * 2)
+
+    roundtrip_series(series)
+
+def test_numpy_dtypes():
+    for dtype in numpy_dtypes:
+        s = pd.Series([0, 1, 0, 1, 0, 0, 0, 1, 1, 1], dtype=dtype)
+        roundtrip_series(s)
+
+
+def test_time():
+    df = pd.DataFrame({
+        "year": [2025, 2026],
+        "month": [1, 2],
+        "day": [1, 2]})
+
+    series = pd.to_datetime(df)
+
+    roundtrip_series(series)
+
+    series = pd.Series([pd.to_timedelta('1 days 01:02:03.00004')])
+
+    roundtrip_series(series)
+
+    start = pd.to_datetime("1/1/2025").tz_localize("Europe/Berlin")
+    end = pd.to_datetime("12/31/2025").tz_localize("Europe/Berlin")
+    index = pd.date_range(start=start, end=end)
+
+    series = pd.Series(index)
+
+    data = [pd.Timestamp("1/1/1970").tz_localize("Europe/Berlin")]
+    df = pd.DataFrame({"s": data})
+    roundtrip_df(df)
+
+    index = pd.DatetimeIndex(data)
+
+    series = pd.Series(data, index=index)
+
+    roundtrip_series(series)
+
+    roundtrip_df(pd.DataFrame({"s": series}, index=index))
+
+    index = pd.CategoricalIndex(data)
+
+    series = pd.Series(data, index=index)
+
+    roundtrip_series(series)
+
+    df = pd.DataFrame({"s": series}, index=index)
+
+    roundtrip_df(df)
