@@ -36,8 +36,46 @@ def read_range_index(f):
     import pandas as pd
     return pd.RangeIndex(start, stop, step)
 
+@writer("pandas.core.indexes.frozen.FrozenList")
+def writer_frozen_list(data, out):
+    write(list(data), out)
+
+@reader("pandas.core.indexes.frozen.FrozenList")
+def reader_frozen_list(f):
+    data = read(f)
+    import pandas
+    return pandas.core.indexes.frozen.FrozenList(data)
+
+@writer("pandas.core.indexes.base.Index")
+def write_base_index(index, out):
+    dtype = index.dtype
+    dtype_name = dtype.name
+
+    assert dtype_name in _numpy_dtypes
+    write(dtype.name, out)
+    write(dtype_name, out)
+    write(index.names, out)
+    write(index._data, out)
+
+@reader("pandas.core.indexes.base.Index")
+def reader_base_index(f):
+    import pandas as pd
+
+    name = read(f)
+    dtype_name = read(f)
+    assert dtype_name in _numpy_dtypes
+    names = read(f)
+    data = read(f)
+
+    index = pd.Index(data, dtype=dtype_name, name=name)
+    index.names = names
+    return index
+
 @writer("pandas.core.series.Series")
 def write_series(series, out):
+    import numpy
+    import pandas
+
     values = series.values
     dtype = values.dtype
     dtype_name = dtype.name
@@ -47,21 +85,24 @@ def write_series(series, out):
     write(dtype_name, out)
 
     if dtype_name == "string":
-        import pandas
         assert isinstance(values, pandas.core.arrays.string_.StringArray)
         write(values.tolist(), out)
 
     elif dtype_name in _pandas_dtypes:
         write(values.isna(), out)
         values_numpy = values._data
-        import numpy
         assert isinstance(values_numpy, numpy.ndarray)
         write(values_numpy, out)
 
     elif dtype_name in _numpy_dtypes:
-        import numpy
         assert isinstance(values, numpy.ndarray)
         write(values, out)
+
+    elif dtype_name == "category":
+        write(values.categories, out)
+        assert isinstance(values.codes, numpy.ndarray)
+        write(values.codes, out)
+        write(values.ordered, out)
 
     else:
         raise ValueError(f"Pandas dtype {dtype_name} not implemented")
@@ -91,6 +132,17 @@ def read_series(f):
         values_np = read(f)
         series = pd.Series(values_np, dtype=dtype_name)
         series = series.mask(isna)
+
+    elif dtype_name == "category":
+        categories = read(f)
+        codes = read(f)
+        ordered = read(f)
+        categorical = pd.Categorical.from_codes(
+            codes=codes,
+            categories=categories,
+            ordered=ordered,
+            dtype=dtype_name)
+        series = pd.Series(categorical)
 
     else:
         raise ValueError(f"Pandas dtype {dtype_name} not implemented")

@@ -1,6 +1,7 @@
 from safeserialize import dumps, loads
 import pandas as pd
 import numpy as np
+import random
 
 def test_pandas():
     a = pd.Series([1, 2, None, 4], dtype="Int64", name="int_nullable")
@@ -45,6 +46,23 @@ def test_pandas():
         assert series.name == column
 
     roundtrip_df(df)
+
+def test_categories():
+    for categories in [
+        [1, 2, 3, 4],
+        [1, 2, 3, 4, None],
+        ["red", "green", "blue", 123, None],
+        [1.0, 2.0, 3.0],
+        [1.0, 2.0, 3.0, None],
+    ]:
+        values = [random.choice(categories) for _ in range(50)]
+        s = pd.Series(values).astype("category")
+
+        serialized_data = dumps(s)
+
+        deserialized_series = loads(serialized_data)
+
+        pd.testing.assert_series_equal(s, deserialized_series)
 
 def roundtrip_df(df):
     serialized_data = dumps(df)
