@@ -89,7 +89,7 @@ def test_numpy_dtypes():
         roundtrip_series(s)
 
 
-def test_time():
+def test_datetime():
     df = pd.DataFrame({
         "year": [2025, 2026],
         "month": [1, 2],
@@ -99,7 +99,7 @@ def test_time():
 
     roundtrip_series(series)
 
-    series = pd.Series([pd.to_timedelta('1 days 01:02:03.00004')])
+    series = pd.Series([pd.to_timedelta("1 days 01:02:03.00004")])
 
     roundtrip_series(series)
 
@@ -129,6 +129,14 @@ def test_time():
 
     df = pd.DataFrame({"s": series}, index=index)
 
+    roundtrip_df(df)
+
+def test_timedelta_index():
+    index = pd.timedelta_range(start="1 day", end="5 days", freq="D", name="Hugo")
+    roundtrip_index(index)
+    series = pd.Series([1, 2, 3, 4, 5], index=index)
+    roundtrip_series(series)
+    df = pd.DataFrame({"values": [1, 2, 3, 4, 5]}, index=index)
     roundtrip_df(df)
 
 def test_interval_index():

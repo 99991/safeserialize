@@ -128,8 +128,12 @@ def read_series(f):
 
     elif values_dtype_name in _numpy_dtypes:
         values = read(f)
-        #series = _from_numpy(pd.Series, series_dtype, data=values, index=index)
 
+        # NumPy datetime64[ns] does not have timezone information.
+        # But pd.Series does, so if the series_dtype contains a timezone,
+        # we have to make sure that we remove that and apply it later
+        # or else pd.Series will change our times to account for the
+        # timezone difference between NumPy (UTC by default) and pandas.
         if isinstance(series_dtype, pd.DatetimeTZDtype):
             # Create series from timezone-less dtype
             series = pd.Series(values, dtype=series_dtype.base, index=index)
@@ -271,6 +275,20 @@ def read_DatetimeIndex(f):
     values = pd.Series(values)
     values = values.dt.tz_localize("UTC").dt.tz_convert(tz)
     return pd.DatetimeIndex(values)
+
+@writer("pandas.core.indexes.timedeltas.TimedeltaIndex")
+def write_TimedeltaIndex(index, out):
+    write(index.values, out)
+    write(index.name, out)
+    write(index.freqstr, out)
+
+@reader("pandas.core.indexes.timedeltas.TimedeltaIndex")
+def read_TimedeltaIndex(f):
+    import pandas as pd
+    values = read(f)
+    name = read(f)
+    freq = read(f)
+    return pd.TimedeltaIndex(values, name=name, freq=freq)
 
 # TODO implement other indexes listed here:
 # https://pandas.pydata.org/docs/reference/api/pandas.Index.html
