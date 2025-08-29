@@ -102,7 +102,7 @@ def test_datetime():
 
     roundtrip_series(series)
 
-    series = pd.Series([pd.to_timedelta('1 days 01:02:03.00004')], name="Frieda")
+    series = pd.Series([pd.to_timedelta("1 days 01:02:03.00004")], name="Frieda")
 
     roundtrip_series(series)
 
@@ -133,6 +133,11 @@ def test_datetime():
     df = pd.DataFrame({"s": series}, index=index)
 
     roundtrip_df(df)
+
+def test_datetime_index_naive():
+    index = pd.to_datetime(["2023-01-01", "2023-02-01", "2023-03-01"])
+    index.name = "Karl"
+    roundtrip_index(index)
 
 def test_timedelta_index():
     index = pd.timedelta_range(start="1 day", end="5 days", freq="D", name="Hugo")
@@ -188,8 +193,8 @@ def test_period_index():
     roundtrip_df(df)
 
 def test_multi_index():
-    arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
-    index = pd.MultiIndex.from_arrays(arrays, sortorder=1, names=['number', 'color'])
+    arrays = [[1, 1, 2, 2], ["red", "blue", "red", "blue"]]
+    index = pd.MultiIndex.from_arrays(arrays, sortorder=1, names=["number", "color"])
     roundtrip_index(index)
 
     series = pd.Series(np.random.randn(4), index=index, name="Manfred")
