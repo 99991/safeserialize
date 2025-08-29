@@ -1,5 +1,6 @@
+import warnings
 from safeserialize import write, read
-from ..core import writer, reader
+from ..core import writer as core_writer, reader as core_reader
 from .numpy import _allowed_dtypes as _numpy_dtypes
 
 VERSION = 1
@@ -10,6 +11,41 @@ _pandas_dtypes = {
     "UInt8", "UInt16", "UInt32", "UInt64",
     "Float32", "Float64",
 }
+
+_WARNING_SHOWN = False
+
+def _warn_experimental():
+    global _WARNING_SHOWN
+    if _WARNING_SHOWN:
+        return
+
+    _WARNING_SHOWN = True
+
+    warning_message = (
+        "Serialization of Pandas objects is still experimental. "
+        "The binary format can change at any time. "
+        "Please verify that loads(dumps(data)) returns your original data "
+        "and report any bugs you might encounter: https://github.com/99991/safeserialize/issues"
+    )
+    warnings.warn(warning_message, UserWarning, stacklevel=5)
+
+def writer(type_str):
+    original_writer = core_writer(type_str)
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            _warn_experimental()
+            return func(*args, **kwargs)
+        return original_writer(wrapper)
+    return decorator
+
+def reader(type_str):
+    original_reader = core_reader(type_str)
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            _warn_experimental()
+            return func(*args, **kwargs)
+        return original_reader(wrapper)
+    return decorator
 
 @writer("pandas._libs.missing.NAType")
 def write_na_type(data, out):
