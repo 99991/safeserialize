@@ -14,6 +14,11 @@ def roundtrip_df(df):
     deserialized_df = loads(serialized_data)
     pd.testing.assert_frame_equal(df, deserialized_df)
 
+def roundtrip_index(index):
+    serialized_data = dumps(index)
+    deserialized_index = loads(serialized_data)
+    pd.testing.assert_index_equal(index, deserialized_index)
+
 def test_pandas():
     a = pd.Series([1, 2, None, 4], dtype="Int64", name="int_nullable")
     b = pd.Series([3.14, np.nan, 2.71828], dtype="Float32", name="float32")
@@ -123,5 +128,40 @@ def test_time():
     roundtrip_series(series)
 
     df = pd.DataFrame({"s": series}, index=index)
+
+    roundtrip_df(df)
+
+def test_interval_index():
+    index = pd.interval_range(start=0, end=20, freq=3, closed="both")
+    serialized_data = dumps(index)
+    deserialized_index = loads(serialized_data)
+    pd.testing.assert_index_equal(index, deserialized_index)
+
+    data = [1, 2, 3, 4, 5, 6]
+    series = pd.Series(data, index=index)
+    roundtrip_series(series)
+
+    df = pd.DataFrame({"values": data}, index=index)
+    roundtrip_df(df)
+
+    for i in range(6):
+        interval = df.index[i]
+        assert df.loc[interval, "values"] == data[i]
+
+    test_interval = pd.Interval(0, 3, closed="both")
+    assert test_interval in df.index
+
+def test_interval_index_with_datetime():
+    start = pd.to_datetime("1/1/2025").tz_localize("Europe/Berlin")
+    end = pd.to_datetime("12/31/2025").tz_localize("Europe/Berlin")
+    index = pd.interval_range(start=start, end=end, freq="2D", closed="both")
+
+    roundtrip_index(index)
+
+    data = [start + pd.Timedelta(days=i*2) for i in range(len(index))]
+
+    roundtrip_series(pd.Series(data, index=index))
+
+    df = pd.DataFrame({"dates": data}, index=index)
 
     roundtrip_df(df)

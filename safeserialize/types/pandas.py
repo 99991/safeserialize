@@ -286,3 +286,18 @@ def read_CategoricalIndex(f):
     ordered = read(f)
     import pandas as pd
     return pd.CategoricalIndex(categories, ordered=ordered)
+
+@writer("pandas.core.indexes.interval.IntervalIndex")
+def write_interval_index(index, out):
+    write(index.left, out)
+    write(index.right, out)
+    write(index.closed, out)
+    print(dir(index))
+
+@reader("pandas.core.indexes.interval.IntervalIndex")
+def read_interval_index(f):
+    left = read(f)
+    right = read(f)
+    closed = read(f)
+    import pandas as pd
+    return pd.IntervalIndex.from_arrays(left=left, right=right, closed=closed)
