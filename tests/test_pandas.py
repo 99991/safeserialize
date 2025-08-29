@@ -24,15 +24,15 @@ def test_pandas():
     b = pd.Series([3.14, np.nan, 2.71828], dtype="Float32", name="float32")
     c = pd.Series([True, False, None], dtype="boolean", name="bool_nullable")
     d = pd.Series(["foo", None, "bar"], dtype="string", name="string")
-    e = pd.to_datetime(pd.Series(["1678-01-01", "2262-04-11"]), utc=False)
+    e = pd.to_datetime(pd.Series(["1678-01-01", "2262-04-11"], name="datetime_internal"), utc=False)
     e.name = "datetime"
-    f = pd.to_timedelta(pd.Series(["1 day", None, "1 minute", "02:00:00"]))
+    f = pd.to_timedelta(pd.Series(["1 day", None, "1 minute", "02:00:00"], name="timedelta_internal"))
     f.name = "timedelta"
     g = pd.Series([{"one": 1}, None, [{1, 2}]], dtype="object", name="object")
     h = pd.Series([1, None, 3, 4], dtype="UInt32", name="uint_nullable")
-    i = pd.Series(np.arange(5))
+    i = pd.Series(np.arange(5), name="arange")
     assert i.dtype == "int64"
-    j = pd.Series(np.linspace(0, 1, 11))
+    j = pd.Series(np.linspace(0, 1, 11), name="linspace")
     assert j.dtype == "float64"
 
     series = [a, a, b, c, d, e, f, g, h, i, j]
@@ -85,7 +85,7 @@ def test_categories():
 
 def test_numpy_dtypes():
     for dtype in numpy_dtypes:
-        s = pd.Series([0, 1, 0, 1, 0, 0, 0, 1, 1, 1], dtype=dtype)
+        s = pd.Series([0, 1, 0, 1, 0, 0, 0, 1, 1, 1], dtype=dtype, name=f"numpy_{dtype}")
         roundtrip_series(s)
 
 
