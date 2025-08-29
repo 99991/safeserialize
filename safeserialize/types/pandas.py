@@ -52,7 +52,7 @@ def write_base_index(index, out):
     dtype_name = dtype.name
 
     assert dtype_name in _numpy_dtypes
-    write(dtype.name, out)
+    write(index.name, out)
     write(dtype_name, out)
     write(index.names, out)
     write(index._data, out)
@@ -266,13 +266,15 @@ def read_Timedelta(f):
 def write_DatetimeIndex(index, out):
     write(index.values, out)
     write(index.tz, out)
+    write(index.name, out)
 
 @reader("pandas.core.indexes.datetimes.DatetimeIndex")
 def read_DatetimeIndex(f):
     import pandas as pd
     values = read(f)
     tz = read(f)
-    values = pd.Series(values)
+    name = read(f)
+    values = pd.Series(values, name=name)
     values = values.dt.tz_localize("UTC").dt.tz_convert(tz)
     return pd.DatetimeIndex(values)
 
@@ -297,25 +299,28 @@ def read_TimedeltaIndex(f):
 def write_CategoricalIndex(index, out):
     write(index.categories, out)
     write(index.ordered, out)
+    write(index.name, out)
 
 @reader("pandas.core.indexes.category.CategoricalIndex")
 def read_CategoricalIndex(f):
     categories = read(f)
     ordered = read(f)
+    name = read(f)
     import pandas as pd
-    return pd.CategoricalIndex(categories, ordered=ordered)
+    return pd.CategoricalIndex(categories, ordered=ordered, name=name)
 
 @writer("pandas.core.indexes.interval.IntervalIndex")
 def write_interval_index(index, out):
     write(index.left, out)
     write(index.right, out)
     write(index.closed, out)
-    print(dir(index))
+    write(index.name, out)
 
 @reader("pandas.core.indexes.interval.IntervalIndex")
 def read_interval_index(f):
     left = read(f)
     right = read(f)
     closed = read(f)
+    name = read(f)
     import pandas as pd
-    return pd.IntervalIndex.from_arrays(left=left, right=right, closed=closed)
+    return pd.IntervalIndex.from_arrays(left=left, right=right, closed=closed, name=name)

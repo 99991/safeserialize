@@ -68,18 +68,18 @@ def test_categories():
         [1.0, 2.0, 3.0, None],
     ]:
         values = [random.choice(categories) for _ in range(50)]
-        s = pd.Series(values).astype("category")
+        s = pd.Series(values, name="Adelheid").astype("category")
 
         roundtrip_series(s)
 
     dtype = pd.CategoricalDtype(["n", "b", "a"], ordered=True)
-    s = pd.Series(list("banana"), dtype=dtype)
+    s = pd.Series(list("banana"), dtype=dtype, name="Berthold")
 
     roundtrip_series(s)
 
-    index = pd.CategoricalIndex([3, 2, 1, 2, 3, 4], categories=[1, 2, 3])
+    index = pd.CategoricalIndex([1, 2, 3], categories=[1, 2, 3], name="Conrad")
 
-    series = pd.Series([0, 1, 2, 3, 4, 5] * 2)
+    series = pd.Series([1, 2, 3], name="Dietlinde", index=index)
 
     roundtrip_series(series)
 
@@ -96,34 +96,35 @@ def test_datetime():
         "day": [1, 2]})
 
     series = pd.to_datetime(df)
+    series.name = "Eberhard"
 
     roundtrip_series(series)
 
-    series = pd.Series([pd.to_timedelta("1 days 01:02:03.00004")])
+    series = pd.Series([pd.to_timedelta('1 days 01:02:03.00004')], name="Frieda")
 
     roundtrip_series(series)
 
     start = pd.to_datetime("1/1/2025").tz_localize("Europe/Berlin")
     end = pd.to_datetime("12/31/2025").tz_localize("Europe/Berlin")
-    index = pd.date_range(start=start, end=end)
+    index = pd.date_range(start=start, end=end, name="Gerhardt")
 
-    series = pd.Series(index)
+    series = pd.Series(index, name="Gisela")
 
     data = [pd.Timestamp("1/1/1970").tz_localize("Europe/Berlin")]
     df = pd.DataFrame({"s": data})
     roundtrip_df(df)
 
-    index = pd.DatetimeIndex(data)
+    index = pd.DatetimeIndex(data, name="Gunther")
 
-    series = pd.Series(data, index=index)
+    series = pd.Series(data, index=index, name="Hedwig")
 
     roundtrip_series(series)
 
     roundtrip_df(pd.DataFrame({"s": series}, index=index))
 
-    index = pd.CategoricalIndex(data)
+    index = pd.CategoricalIndex(data, name="Heinrich")
 
-    series = pd.Series(data, index=index)
+    series = pd.Series(data, index=index, name="Irmgard")
 
     roundtrip_series(series)
 
@@ -140,13 +141,13 @@ def test_timedelta_index():
     roundtrip_df(df)
 
 def test_interval_index():
-    index = pd.interval_range(start=0, end=20, freq=3, closed="both")
+    index = pd.interval_range(start=0, end=20, freq=3, closed="both", name="Mathilde")
     serialized_data = dumps(index)
     deserialized_index = loads(serialized_data)
     pd.testing.assert_index_equal(index, deserialized_index)
 
     data = [1, 2, 3, 4, 5, 6]
-    series = pd.Series(data, index=index)
+    series = pd.Series(data, index=index, name="Oswald")
     roundtrip_series(series)
 
     df = pd.DataFrame({"values": data}, index=index)
@@ -162,13 +163,13 @@ def test_interval_index():
 def test_interval_index_with_datetime():
     start = pd.to_datetime("1/1/2025").tz_localize("Europe/Berlin")
     end = pd.to_datetime("12/31/2025").tz_localize("Europe/Berlin")
-    index = pd.interval_range(start=start, end=end, freq="2D", closed="both")
+    index = pd.interval_range(start=start, end=end, freq="2D", closed="both", name="Reinhilde")
 
     roundtrip_index(index)
 
     data = [start + pd.Timedelta(days=i*2) for i in range(len(index))]
 
-    roundtrip_series(pd.Series(data, index=index))
+    roundtrip_series(pd.Series(data, index=index, name="Siegfried"))
 
     df = pd.DataFrame({"dates": data}, index=index)
 
