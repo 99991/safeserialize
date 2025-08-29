@@ -4,6 +4,8 @@ import numpy as np
 import random
 from safeserialize.types.numpy import _allowed_dtypes as numpy_dtypes
 
+# Functions to test whether data == loads(dumps(data))
+# for pd.Series, pd.DataFrame and pd.Index
 def roundtrip_series(s):
     serialized_data = dumps(s)
     deserialized_series = loads(serialized_data)
@@ -20,6 +22,7 @@ def roundtrip_index(index):
     pd.testing.assert_index_equal(index, deserialized_index)
 
 def test_pandas():
+    # Test various data types
     a = pd.Series([1, 2, None, 4], dtype="Int64", name="int_nullable")
     b = pd.Series([3.14, np.nan, 2.71828], dtype="Float32", name="float32")
     c = pd.Series([True, False, None], dtype="boolean", name="bool_nullable")
@@ -41,23 +44,26 @@ def test_pandas():
 
     series = [a, a, b, c, d, e, f, g, h, i, j]
 
+    # Test individual series
     for s in series:
         roundtrip_series(s)
 
+    # Test series combined into one DataFrame
     df = pd.concat(series, axis=1)
 
     roundtrip_df(df)
 
-    # Data frame with duplicate column names
+    # DataFrame with duplicate column names
     df = pd.concat([a, a, b], axis=1)
 
     roundtrip_df(df)
 
-    # Data frame with renamed columns
+    # DataFrame with renamed columns
     df = pd.concat([b, d], axis=1)
 
     df = df.rename(columns={"string": "d", "float32": "b"})
 
+    # Check names
     for column, series in df.items():
         assert series.name == column
 
@@ -95,7 +101,6 @@ def test_numpy_dtypes():
         s = pd.Series(data, dtype=dtype, name=f"numpy_{dtype}")
         roundtrip_series(s)
 
-
 def test_datetime():
     df = pd.DataFrame({
         "year": [2025, 2026],
@@ -112,6 +117,11 @@ def test_datetime():
 
     roundtrip_series(series)
 
+    # Test datetime with timezone. Timezone-aware objects
+    # should always be checked with and without timezone
+    # because internally, Pandas often stores timestamps with
+    # NumPy, which is not timezone aware, and the conversion is
+    # easy to get wrong.
     start = pd.to_datetime("1/1/2025").tz_localize("Europe/Berlin")
     end = pd.to_datetime("12/31/2025").tz_localize("Europe/Berlin")
     index = pd.date_range(start=start, end=end, name="Gerhardt")
@@ -249,7 +259,7 @@ def test_categorical_index_advanced():
 
     roundtrip_index(index)
 
-    # With unused categories
+    # Unused categories
     categories = ["apple", "banana", "cherry", "date"]
     data = ["apple", "cherry", "apple"]
     index = pd.CategoricalIndex(
@@ -259,7 +269,7 @@ def test_categorical_index_advanced():
 
     roundtrip_index(index)
 
-    # With datetime with timezone
+    # Datetime with timezone
     tz = "America/New_York"
     dates = ["2023-01-01", "2023-01-02", "2023-01-03"]
     categories = pd.to_datetime(dates).tz_localize(tz)
@@ -271,7 +281,7 @@ def test_categorical_index_advanced():
 
     roundtrip_index(index)
 
-    # Empty with categories
+    # Empty data
     index = pd.CategoricalIndex(
         [],
         categories=["x", "y", "z"],
