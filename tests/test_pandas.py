@@ -174,3 +174,13 @@ def test_interval_index_with_datetime():
     df = pd.DataFrame({"dates": data}, index=index)
 
     roundtrip_df(df)
+
+def test_period_index():
+    index = pd.period_range(start="2000-01-01", end="2001-01-01", freq="M", name="Egon")
+    roundtrip_index(index)
+
+    series = pd.Series(range(len(index)), index=index, name="Hugo")
+    roundtrip_series(series)
+
+    df = pd.DataFrame({"values": range(len(index))}, index=index)
+    roundtrip_df(df)

@@ -324,3 +324,17 @@ def read_interval_index(f):
     name = read(f)
     import pandas as pd
     return pd.IntervalIndex.from_arrays(left=left, right=right, closed=closed, name=name)
+
+@writer("pandas.core.indexes.period.PeriodIndex")
+def write_PeriodIndex(index, out):
+    write(index.name, out)
+    write(index.freqstr, out)
+    write(index.asi8, out)
+
+@reader("pandas.core.indexes.period.PeriodIndex")
+def read_PeriodIndex(f):
+    import pandas as pd
+    name = read(f)
+    freq = read(f)
+    ordinals = read(f)
+    return pd.PeriodIndex.from_ordinals(ordinals, freq=freq, name=name)
