@@ -79,6 +79,8 @@ def test_categories():
 
     index = pd.CategoricalIndex([1, 2, 3], categories=[1, 2, 3], name="Conrad")
 
+    roundtrip_index(index)
+
     series = pd.Series([1, 2, 3], name="Dietlinde", index=index)
 
     roundtrip_series(series)
@@ -195,3 +197,33 @@ def test_multi_index():
 
     df = pd.DataFrame({"values": np.random.randn(4)}, index=index)
     roundtrip_df(df)
+
+def test_categorical_index_advanced():
+    # With None in data
+    categories = ["a", "b", "c"]
+    data = ["a", "b", "a", None, "c"]
+    index = pd.CategoricalIndex(data, categories=categories, name="with_none")
+    roundtrip_index(index)
+
+    # Ordered with custom order
+    categories = ["low", "medium", "high"]
+    data = ["medium", "high", "low", "medium"]
+    index = pd.CategoricalIndex(data, categories=categories, ordered=True, name="ordered_custom")
+    roundtrip_index(index)
+
+    # With unused categories
+    categories = ["apple", "banana", "cherry", "date"]
+    data = ["apple", "cherry", "apple"]
+    index = pd.CategoricalIndex(data, categories=categories, name="unused_categories")
+    roundtrip_index(index)
+
+    # With datetime with timezone
+    tz = "America/New_York"
+    categories = pd.to_datetime(["2023-01-01", "2023-01-02", "2023-01-03"]).tz_localize(tz)
+    data = [categories[0], categories[2], categories[0]]
+    index = pd.CategoricalIndex(data, categories=categories, name="datetime_tz")
+    roundtrip_index(index)
+
+    # Empty with categories
+    index = pd.CategoricalIndex([], categories=["x", "y", "z"], name="empty_with_categories")
+    roundtrip_index(index)

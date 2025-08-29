@@ -328,22 +328,22 @@ def read_TimedeltaIndex(f):
     freq = read(f)
     return pd.TimedeltaIndex(values, name=name, freq=freq)
 
-# TODO implement other indexes listed here:
-# https://pandas.pydata.org/docs/reference/api/pandas.Index.html
-
 @writer("pandas.core.indexes.category.CategoricalIndex")
 def write_CategoricalIndex(index, out):
+    write(index.codes, out)
     write(index.categories, out)
     write(index.ordered, out)
     write(index.name, out)
 
 @reader("pandas.core.indexes.category.CategoricalIndex")
 def read_CategoricalIndex(f):
+    codes = read(f)
     categories = read(f)
     ordered = read(f)
     name = read(f)
     import pandas as pd
-    return pd.CategoricalIndex(categories, ordered=ordered, name=name)
+    cat = pd.Categorical.from_codes(codes, categories, ordered=ordered)
+    return pd.CategoricalIndex(cat, name=name)
 
 @writer("pandas.core.indexes.interval.IntervalIndex")
 def write_interval_index(index, out):
