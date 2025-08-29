@@ -184,3 +184,14 @@ def test_period_index():
 
     df = pd.DataFrame({"values": range(len(index))}, index=index)
     roundtrip_df(df)
+
+def test_multi_index():
+    arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
+    index = pd.MultiIndex.from_arrays(arrays, sortorder=1, names=['number', 'color'])
+    roundtrip_index(index)
+
+    series = pd.Series(np.random.randn(4), index=index, name="Manfred")
+    roundtrip_series(series)
+
+    df = pd.DataFrame({"values": np.random.randn(4)}, index=index)
+    roundtrip_df(df)

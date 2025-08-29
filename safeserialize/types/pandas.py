@@ -325,6 +325,22 @@ def read_interval_index(f):
     import pandas as pd
     return pd.IntervalIndex.from_arrays(left=left, right=right, closed=closed, name=name)
 
+@writer("pandas.core.indexes.multi.MultiIndex")
+def write_MultiIndex(index, out):
+    write(index.levels, out)
+    write(index.codes, out)
+    write(index.names, out)
+    write(index.sortorder, out)
+
+@reader("pandas.core.indexes.multi.MultiIndex")
+def read_MultiIndex(f):
+    import pandas as pd
+    levels = read(f)
+    codes = read(f)
+    names = read(f)
+    sortorder = read(f)
+    return pd.MultiIndex(levels=levels, codes=codes, names=names, sortorder=sortorder)
+
 @writer("pandas.core.indexes.period.PeriodIndex")
 def write_PeriodIndex(index, out):
     write(index.name, out)
