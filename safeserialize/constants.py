@@ -10,7 +10,8 @@ TYPE_INT2 = 3
 TYPE_INT4 = 4
 TYPE_INT8 = 5
 TYPE_LARGE_INT = 6
-TYPE_INT_VALUE_0 = 48 # ord('0')
+# 48 = ord('0')
+TYPE_INT_VALUE_0 = 48
 
 builtins = {
     # String/bytes

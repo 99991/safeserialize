@@ -13,6 +13,16 @@ _allowed_dtypes = {
     "object",
 }
 
+_descriptors = {
+    "|b1",
+    "|i1", "<i2", "<i4", "<i8",
+    "|u1", "<u2", "<u4", "<u8",
+    "<f2", "<f4", "<f8",
+    "<c8", "<c16",
+    "<m8[ns]", "<M8[ns]",
+    "|O",
+}
+
 @writer("numpy.ndarray")
 def write_ndarray(data, out, alignment=64):
     dtype = str(data.dtype)
@@ -109,16 +119,7 @@ def read_ndarray(f):
     descr = d["descr"]
     shape = d["shape"]
 
-    assert descr in {
-        "|b1",
-        "|i1", "<i2", "<i4", "<i8",
-        "|u1", "<u2", "<u4", "<u8",
-        "<f2", "<f4", "<f8",
-        "<c8", "<c16",
-        "<m8[ns]",
-        "<M8[ns]",
-        "|O",
-    }, f"NumPy dtype {repr(descr)} not implemented"
+    assert descr in _descriptors, f"NumPy dtype {repr(descr)} not implemented"
 
     if descr == "|O":
         objects = read_list(f)
@@ -259,3 +260,36 @@ def write_uint64(data, out):
 def read_uint64(f):
     import numpy as np
     return np.uint64(struct.unpack("<Q", f.read(8))[0])
+
+dtypes = [
+    ("Int8DType", "int8"),
+    ("Int16DType", "int16"),
+    ("Int32DType", "int32"),
+    ("Int64DType", "int64"),
+    ("UInt8DType", "uint8"),
+    ("UInt16DType", "uint16"),
+    ("UInt32DType", "uint32"),
+    ("UInt64DType", "uint64"),
+    ("BoolDType", "bool"),
+    ("Float16DType", "float16"),
+    ("Float32DType", "float32"),
+    ("Float64DType", "float64"),
+    ("Complex64DType", "complex64"),
+    ("Complex128DType", "complex128"),
+    ("DateTime64DType", "datetime64[ns]"),
+    ("TimeDelta64DType", "timedelta64[ns]"),
+    ("ObjectDType", "object"),
+]
+
+for type_name, dtype_str in dtypes:
+    def make_dtype_reader_writer(type_name, dtype_str):
+        @writer(f"numpy.dtypes.{type_name}")
+        def writer_func(data, out):
+            pass
+
+        @reader(f"numpy.dtypes.{type_name}")
+        def reader_func(f):
+            import numpy as np
+            return np.dtype(dtype_str)
+
+    make_dtype_reader_writer(type_name, dtype_str)
