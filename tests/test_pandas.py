@@ -24,9 +24,13 @@ def test_pandas():
     b = pd.Series([3.14, np.nan, 2.71828], dtype="Float32", name="float32")
     c = pd.Series([True, False, None], dtype="boolean", name="bool_nullable")
     d = pd.Series(["foo", None, "bar"], dtype="string", name="string")
-    e = pd.to_datetime(pd.Series(["1678-01-01", "2262-04-11"], name="datetime_internal"), utc=False)
+    data = ["1678-01-01", "2262-04-11"]
+    series = pd.Series(data, name="datetime_series")
+    e = pd.to_datetime(series, utc=False)
     e.name = "datetime"
-    f = pd.to_timedelta(pd.Series(["1 day", None, "1 minute", "02:00:00"], name="timedelta_internal"))
+    data = ["1 day", None, "1 sec", "02:00:00"]
+    series = pd.Series(data, name="timedelta_series")
+    f = pd.to_timedelta(series)
     f.name = "timedelta"
     g = pd.Series([{"one": 1}, None, [{1, 2}]], dtype="object", name="object")
     h = pd.Series([1, None, 3, 4], dtype="UInt32", name="uint_nullable")
@@ -87,7 +91,8 @@ def test_categories():
 
 def test_numpy_dtypes():
     for dtype in numpy_dtypes:
-        s = pd.Series([0, 1, 0, 1, 0, 0, 0, 1, 1, 1], dtype=dtype, name=f"numpy_{dtype}")
+        data = [0, 1, 0, 1, 0, 0, 0, 1, 1, 1]
+        s = pd.Series(data, dtype=dtype, name=f"numpy_{dtype}")
         roundtrip_series(s)
 
 
@@ -102,7 +107,8 @@ def test_datetime():
 
     roundtrip_series(series)
 
-    series = pd.Series([pd.to_timedelta("1 days 01:02:03.00004")], name="Frieda")
+    t = pd.to_timedelta("1 days 01:02:03.00004")
+    series = pd.Series([t], name="Frieda")
 
     roundtrip_series(series)
 
@@ -140,7 +146,12 @@ def test_datetime_index_naive():
     roundtrip_index(index)
 
 def test_timedelta_index():
-    index = pd.timedelta_range(start="1 day", end="5 days", freq="D", name="Hugo")
+    index = pd.timedelta_range(
+        start="1 day",
+        end="5 days",
+        freq="D",
+        name="Hugo")
+
     roundtrip_index(index)
     series = pd.Series([1, 2, 3, 4, 5], index=index)
     roundtrip_series(series)
@@ -148,7 +159,13 @@ def test_timedelta_index():
     roundtrip_df(df)
 
 def test_interval_index():
-    index = pd.interval_range(start=0, end=20, freq=3, closed="both", name="Mathilde")
+    index = pd.interval_range(
+        start=0,
+        end=20,
+        freq=3,
+        closed="both",
+        name="Mathilde")
+
     serialized_data = dumps(index)
     deserialized_index = loads(serialized_data)
     pd.testing.assert_index_equal(index, deserialized_index)
@@ -170,11 +187,16 @@ def test_interval_index():
 def test_interval_index_with_datetime():
     start = pd.to_datetime("1/1/2025").tz_localize("Europe/Berlin")
     end = pd.to_datetime("12/31/2025").tz_localize("Europe/Berlin")
-    index = pd.interval_range(start=start, end=end, freq="2D", closed="both", name="Reinhilde")
+    index = pd.interval_range(
+        start=start,
+        end=end,
+        freq="2D",
+        closed="both",
+        name="Reinhilde")
 
     roundtrip_index(index)
 
-    data = [start + pd.Timedelta(days=i*2) for i in range(len(index))]
+    data = [start + pd.Timedelta(days=i * 2) for i in range(len(index))]
 
     roundtrip_series(pd.Series(data, index=index, name="Siegfried"))
 
@@ -183,7 +205,12 @@ def test_interval_index_with_datetime():
     roundtrip_df(df)
 
 def test_period_index():
-    index = pd.period_range(start="2000-01-01", end="2001-01-01", freq="M", name="Egon")
+    index = pd.period_range(
+        start="2000-01-01",
+        end="2001-01-01",
+        freq="M",
+        name="Egon")
+
     roundtrip_index(index)
 
     series = pd.Series(range(len(index)), index=index, name="Hugo")
@@ -194,7 +221,8 @@ def test_period_index():
 
 def test_multi_index():
     arrays = [[1, 1, 2, 2], ["red", "blue", "red", "blue"]]
-    index = pd.MultiIndex.from_arrays(arrays, sortorder=1, names=["number", "color"])
+    names = ["number", "color"]
+    index = pd.MultiIndex.from_arrays(arrays, sortorder=1, names=names)
     roundtrip_index(index)
 
     series = pd.Series(np.random.randn(4), index=index, name="Manfred")
@@ -213,22 +241,40 @@ def test_categorical_index_advanced():
     # Ordered with custom order
     categories = ["low", "medium", "high"]
     data = ["medium", "high", "low", "medium"]
-    index = pd.CategoricalIndex(data, categories=categories, ordered=True, name="ordered_custom")
+    index = pd.CategoricalIndex(
+        data,
+        categories=categories,
+        ordered=True,
+        name="ordered_custom")
+
     roundtrip_index(index)
 
     # With unused categories
     categories = ["apple", "banana", "cherry", "date"]
     data = ["apple", "cherry", "apple"]
-    index = pd.CategoricalIndex(data, categories=categories, name="unused_categories")
+    index = pd.CategoricalIndex(
+        data,
+        categories=categories,
+        name="unused_categories")
+
     roundtrip_index(index)
 
     # With datetime with timezone
     tz = "America/New_York"
-    categories = pd.to_datetime(["2023-01-01", "2023-01-02", "2023-01-03"]).tz_localize(tz)
+    dates = ["2023-01-01", "2023-01-02", "2023-01-03"]
+    categories = pd.to_datetime(dates).tz_localize(tz)
     data = [categories[0], categories[2], categories[0]]
-    index = pd.CategoricalIndex(data, categories=categories, name="datetime_tz")
+    index = pd.CategoricalIndex(
+        data,
+        categories=categories,
+        name="datetime_tz")
+
     roundtrip_index(index)
 
     # Empty with categories
-    index = pd.CategoricalIndex([], categories=["x", "y", "z"], name="empty_with_categories")
+    index = pd.CategoricalIndex(
+        [],
+        categories=["x", "y", "z"],
+        name="empty_with_categories")
+
     roundtrip_index(index)

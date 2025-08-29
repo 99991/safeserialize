@@ -25,7 +25,8 @@ def _warn_experimental():
         "Serialization of Pandas objects is still experimental. "
         "The binary format can change at any time. "
         "Please verify that loads(dumps(data)) returns your original data "
-        "and report any bugs you might encounter: https://github.com/99991/safeserialize/issues"
+        "and report any bugs you might encounter: "
+        "https://github.com/99991/safeserialize/issues"
     )
     warnings.warn(warning_message, UserWarning, stacklevel=5)
 
@@ -174,7 +175,8 @@ def read_series(f):
             # Create series from timezone-less dtype
             series = pd.Series(values, dtype=series_dtype.base, index=index)
             # and apply actual dtype afterwards
-            series = series.dt.tz_localize("UTC").dt.tz_convert(series_dtype.tz)
+            series = series.dt.tz_localize("UTC")
+            series = series.dt.tz_convert(series_dtype.tz)
         else:
             series = pd.Series(values, dtype=series_dtype, index=index)
 
@@ -188,7 +190,8 @@ def read_series(f):
     elif values_dtype_name == "category":
         categories = read(f)
         codes = read(f)
-        ordered = read(f) # unused, already stored in categories
+        # `ordered` is unused, already stored in categories
+        ordered = read(f)
         assert isinstance(ordered, bool)
         categorical = pd.Categorical.from_codes(codes, categories)
         series = pd.Series(categorical, dtype=series_dtype, index=index)
@@ -359,7 +362,11 @@ def read_interval_index(f):
     closed = read(f)
     name = read(f)
     import pandas as pd
-    return pd.IntervalIndex.from_arrays(left=left, right=right, closed=closed, name=name)
+    return pd.IntervalIndex.from_arrays(
+        left=left,
+        right=right,
+        closed=closed,
+        name=name)
 
 @writer("pandas.core.indexes.multi.MultiIndex")
 def write_MultiIndex(index, out):
@@ -375,7 +382,11 @@ def read_MultiIndex(f):
     codes = read(f)
     names = read(f)
     sortorder = read(f)
-    return pd.MultiIndex(levels=levels, codes=codes, names=names, sortorder=sortorder)
+    return pd.MultiIndex(
+        levels=levels,
+        codes=codes,
+        names=names,
+        sortorder=sortorder)
 
 @writer("pandas.core.indexes.period.PeriodIndex")
 def write_PeriodIndex(index, out):
