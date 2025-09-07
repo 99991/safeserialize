@@ -1,4 +1,4 @@
-from safeserialize import dump, load, dumps, loads
+from safeserialize import dump, load, dumps, loads, dump_base64, load_base64
 from safeserialize.core import num_bytes_signed_int
 
 import tempfile
@@ -55,6 +55,8 @@ def test_builtins():
         deserialized = load(temp_file)
 
     assert data == deserialized, f"{data} != {deserialized}"
+
+    assert data == load_base64(dump_base64(data))
 
 def test_headerless():
     data = 1
