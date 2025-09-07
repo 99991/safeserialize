@@ -1,6 +1,7 @@
 from .core import (
     dump, load,
     dumps, loads,
+    dump_base64, load_base64,
     Serializer, Deserializer,
     write, read,
 )

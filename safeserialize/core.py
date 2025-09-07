@@ -1,4 +1,5 @@
 import io
+import base64
 import struct
 
 from .constants import (
@@ -176,6 +177,14 @@ def loads(data, readers=None, header=True, version=None):
     """Deserialize object from a file."""
     deserializer = Deserializer(io.BytesIO(data), readers, header, version)
     return read(deserializer)
+
+def dump_base64(data: bytes) -> str:
+    """Like dumps, but encodes result as base64."""
+    return base64.b64encode(dumps(data)).decode("ascii")
+
+def load_base64(text: str) -> bytes:
+    """Like loads, but decodes input from base64 beforehand."""
+    return loads(base64.b64decode(text.encode("ascii")))
 
 def read_int(f):
     result = read(f)

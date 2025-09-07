@@ -119,6 +119,16 @@ serialized_str = base64.b64encode(dumps(data)).decode("ascii")
 assert isinstance(serialized_str, str)
 
 deserialized_data = loads(base64.b64decode(serialized_str))
+
+assert data == deserialized_data
+
+# For brevity, the following wrappers do the same as the code above.
+from safeserialize import dump_base64, load_base64
+
+serialized_str = dump_base64(data)
+
+assert data == load_base64(serialized_str)
+
 print("Serialization and deserialization successful!")
 ```
 
