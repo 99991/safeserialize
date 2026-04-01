@@ -17,6 +17,7 @@ from .constants import (
 )
 
 writers = {}
+iwriters = {}
 readers = {}
 
 def writer(type_name):
@@ -24,6 +25,15 @@ def writer(type_name):
     def decorator(func):
         assert type_name not in writers
         writers[type_name] = func
+        return func
+    return decorator
+
+def iwriter(typ):
+    """Register a writer function for a type and all its descendant classes.
+    The type must be given as the Python class object, not a string."""
+    def decorator(func):
+        assert typ not in iwriters
+        iwriters[typ] = func
         return func
     return decorator
 
@@ -38,9 +48,11 @@ def reader(type_name):
     return decorator
 
 class Serializer:
-    def __init__(self, file, writers=None, header=True, version=VERSION):
+    def __init__(self, file, writers=None, iwriters=None, header=True, version=VERSION):
         if writers is None:
             writers = {}
+        if iwriters is None:
+            iwriters = {}
 
         if header:
             file.write(FILE_SIGNATURE)
@@ -49,6 +61,7 @@ class Serializer:
         self._file = file
         self._version = version
         self._writers = writers
+        self._iwriters = iwriters
 
     def write(self, data: bytes):
         """This write function mimics file.write. It does not serialize."""
@@ -109,10 +122,23 @@ def write(data, out):
     data_type = f"{cls.__module__}.{cls.__name__}"
 
     out_writers = getattr(out, "_writers", {})
+    out_iwriters = getattr(out, "_iwriters", {})
 
     if data_type not in out_writers:
         if data_type not in writers:
-            raise TypeError(f"Writer not implemented for {type(data)}")
+            for typ in out_iwriters.keys():
+                if isinstance(data, typ):
+                    data_type = f"{typ.__module__}.{typ.__name__}"
+                    writer = out_iwriters[typ]
+                    break
+            else:
+                for typ in iwriters.keys():
+                    if isinstance(data, typ):
+                        data_type = f"{typ.__module__}.{typ.__name__}"
+                        writer = iwriters[typ]
+                        break
+                else:
+                    raise TypeError(f"Writer not implemented for {type(data)}")
         else:
             writer = writers[data_type]
     else:
@@ -153,18 +179,19 @@ def read(f):
             reader = f_readers[name]
 
         return reader(f)
+
     else:
         raise TypeError(f"Reader not implemented for {repr(data_type)}")
 
-def dump(obj, file, writers=None, header=True):
+def dump(obj, file, writers=None, iwriters=None, header=True):
     """Serialize object to a file."""
-    serializer = Serializer(file, writers, header)
+    serializer = Serializer(file, writers, iwriters, header)
     write(obj, serializer)
 
-def dumps(obj, writers=None, header=True):
+def dumps(obj, writers=None, iwriters=None, header=True):
     """Serialize object to bytes."""
     out = io.BytesIO()
-    serializer = Serializer(out, writers, header)
+    serializer = Serializer(out, writers, iwriters, header)
     write(obj, serializer)
     return out.getvalue()
 
@@ -409,3 +436,24 @@ def write_not_implemented(data, out):
 @reader("builtins.NotImplementedType")
 def read_not_implemented(f):
     return NotImplemented
+
+@iwriter(BaseException)
+def write_BaseException(exc, out):
+    write_str(exc.__class__.__module__, out)
+    write_str(exc.__class__.__name__, out)
+    write_tuple(exc.args, out)
+    write_dict(exc.__dict__, out)
+
+@reader('builtins.BaseException')
+def read_BaseException(f):
+    module_name = read_str(f)
+    cls_name = read_str(f)
+    args = read_tuple(f)
+    dct = read_dict(f)
+    import importlib
+    module = importlib.import_module(module_name) 
+    cls = getattr(module, cls_name)
+    exc = cls()
+    exc.args = args
+    exc.__dict__ = dct
+    return exc

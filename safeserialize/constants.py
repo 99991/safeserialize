@@ -37,6 +37,7 @@ builtins = {
     # Misc
     "builtins.range": 34,
     "builtins.slice": 35,
+    "builtins.BaseException": 36,  BaseException: 36,
 }
 
 TYPE_CUSTOM = 255
