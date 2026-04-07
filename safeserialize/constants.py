@@ -1,4 +1,4 @@
-VERSION = 1
+VERSION = 2
 # Adapted from PNG file signature
 # https://www.libpng.org/pub/png/spec/1.2/PNG-Rationale.html#R.PNG-file-signature
 FILE_SIGNATURE = b'\x89SER\r\n\x1a\n'
