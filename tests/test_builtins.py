@@ -26,7 +26,8 @@ def test_builtins():
         1: [1, 2.0, 3, float("inf"), float("-inf")],
         3: [4, 5, 6],
         (1, 2): 3,
-        frozenset([7, "foo", 9]): 4,
+        # max one member because of test_binary_compat: frozenset does not guarantee order
+        frozenset([7]): 4,
         123456789: 1 << 256,
         b"key": bytearray(b"value"),
         "float": 3.14159265358979323846,
@@ -42,6 +43,11 @@ def test_builtins():
     }
 
     roundtrip(data)
+
+    # Test multi-member frozenset separately, avoiding the roundtrip function
+    data = frozenset([7, "foo", 9])
+    deserialized = loads(dumps(data))
+    assert data == deserialized, f"{data} != {deserialized}"
 
     with tempfile.NamedTemporaryFile(delete=True) as temp_file:
         dump(data, temp_file)

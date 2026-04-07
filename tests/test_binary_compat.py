@@ -11,9 +11,7 @@ function which produced it).
 dump into the repo as `dump.bin`.  In the next version of the package, the
 contents of `dump.bin` are compared to the current dump:
 
-- `test_byte_compare_dumps` compares the dumps on the binary level. Currently,
-  this may fail because `(frozen)set` does not guarantee order, so the test is
-  skipped.
+- `test_byte_compare_dumps` compares the dumps on the binary level.
 
 - `test_compare_dump_to_data` loads `dump.bin` into an object and compares it
   to `roundtrip.DATA`.
@@ -44,7 +42,6 @@ def test_dump():
     with open('curr.bin', 'wb') as f:
         dump(dict(DATA), f)
 
-@pytest.mark.skip("mismatch due to frozenset in test_builtins")
 @ifdump
 def test_byte_compare_dumps():
     with open('dump.bin', 'rb') as f:
