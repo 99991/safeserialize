@@ -4,6 +4,8 @@ import tempfile
 import numpy as np
 from safeserialize.types.numpy import write_ndarray, read_ndarray
 
+from .roundtrip import *
+
 def test_numpy_serialization():
     np.random.seed(0)
 
@@ -31,13 +33,8 @@ def test_numpy_serialization():
         "complex128": np.complex128(1 + 2j),
     }
 
-    serialized = dumps(data)
-
-    deserialized = loads(serialized)
-
-    for key, expected_value in data.items():
-        value = deserialized[key]
-        assert np.array_equal(value, expected_value)
+    for value in data.values():
+        roundtrip_array(value)
 
 def test_write_ndarray():
     # Verify write_ndarray against NumPy np.save
@@ -73,5 +70,4 @@ def test_read_ndarray():
 
 def test_transposed():
     A = np.random.rand(2, 3)
-
-    assert np.array_equal(A.T, loads(dumps(A.T)))
+    roundtrip_array(A.T)

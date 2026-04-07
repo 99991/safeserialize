@@ -4,23 +4,10 @@ import numpy as np
 import random
 from safeserialize.types.numpy import _allowed_dtypes as numpy_dtypes
 
+from .roundtrip import *
+
 # Functions to test whether data == loads(dumps(data))
 # for pd.Series, pd.DataFrame and pd.Index
-def roundtrip_series(s):
-    serialized_data = dumps(s)
-    deserialized_series = loads(serialized_data)
-    pd.testing.assert_series_equal(s, deserialized_series)
-
-def roundtrip_df(df):
-    serialized_data = dumps(df)
-    deserialized_df = loads(serialized_data)
-    pd.testing.assert_frame_equal(df, deserialized_df)
-
-def roundtrip_index(index):
-    serialized_data = dumps(index)
-    deserialized_index = loads(serialized_data)
-    pd.testing.assert_index_equal(index, deserialized_index)
-
 def test_pandas():
     # Test various data types
     a = pd.Series([1, 2, None, 4], dtype="Int64", name="int_nullable")
@@ -70,6 +57,7 @@ def test_pandas():
     roundtrip_df(df)
 
 def test_categories():
+    random.seed(0)
     for categories in [
         [1, 2, 3, 4],
         [1, 2, 3, 4, None],
@@ -96,7 +84,7 @@ def test_categories():
     roundtrip_series(series)
 
 def test_numpy_dtypes():
-    for dtype in numpy_dtypes:
+    for dtype in sorted(numpy_dtypes): # to test binary compat
         data = [0, 1, 0, 1, 0, 0, 0, 1, 1, 1]
         s = pd.Series(data, dtype=dtype, name=f"numpy_{dtype}")
         roundtrip_series(s)

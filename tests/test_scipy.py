@@ -3,6 +3,8 @@ from safeserialize import dumps, loads
 import scipy.sparse
 import numpy as np
 
+from .roundtrip import *
+
 def test_scipy():
     np.random.seed(0)
     m = 20
@@ -17,11 +19,5 @@ def test_scipy():
         "coo": scipy.sparse.coo_matrix(A),
     }
 
-    data = dumps(matrices)
-
-    loaded_matrices = loads(data)
-
-    for name, expected_value in matrices.items():
-        value = loaded_matrices[name]
-
-        assert (value != expected_value).nnz == 0
+    for value in matrices.values():
+        roundtrip_sparse(value)

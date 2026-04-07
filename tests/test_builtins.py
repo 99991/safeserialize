@@ -1,5 +1,6 @@
-from safeserialize import dump, load, dumps, loads, dump_base64, load_base64
+from safeserialize import dump, load, dump_base64, load_base64
 from safeserialize.core import num_bytes_signed_int
+from .roundtrip import *
 
 import tempfile
 
@@ -19,10 +20,7 @@ def test_num_bytes_signed_int():
 
 def test_builtins():
     for x in range(-300, 300):
-        data = dumps(x)
-        y = loads(data)
-
-        assert x == y, f"{x} != {y}"
+        roundtrip(x)
 
     data = {
         1: [1, 2.0, 3, float("inf"), float("-inf")],
@@ -43,11 +41,7 @@ def test_builtins():
         "NotImplemented": NotImplemented,
     }
 
-    serialized = dumps(data)
-
-    deserialized = loads(serialized)
-
-    assert data == deserialized, f"{data} != {deserialized}"
+    roundtrip(data)
 
     with tempfile.NamedTemporaryFile(delete=True) as temp_file:
         dump(data, temp_file)
@@ -57,21 +51,18 @@ def test_builtins():
     assert data == deserialized, f"{data} != {deserialized}"
 
     assert data == load_base64(dump_base64(data))
+    
 
 def test_headerless():
     data = 1
-
-    serialized = dumps(data, header=False)
-
-    assert len(serialized) == 1
-
-    deserialized = loads(serialized, header=False)
-
-    assert data == deserialized
+    assert len(roundtrip(data, header=False)) == 1
 
 def test_constants():
-    assert loads(dumps(True)) is True
-    assert loads(dumps(False)) is False
-    assert loads(dumps(None)) is None
-    assert loads(dumps(...)) is ...
-    assert loads(dumps(NotImplemented)) is NotImplemented
+    roundtrip_const(True)
+    roundtrip_const(False)
+    roundtrip_const(None)
+    roundtrip_const(...)
+    roundtrip_const(NotImplemented)
+
+def test_exceptions():
+    roundtrip_exc(RuntimeError("test error"))
