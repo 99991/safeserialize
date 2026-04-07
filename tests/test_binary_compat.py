@@ -38,7 +38,7 @@ ifdump = pytest.mark.skipif(
 @pytest.mark.order(-2)
 def test_dump():
     from .roundtrip import DATA
-    from safeserialize import dump
+    from safeserialize.all import dump
     with open('curr.bin', 'wb') as f:
         dump(dict(DATA), f)
 
@@ -52,7 +52,7 @@ def test_byte_compare_dumps():
 
 @ifdump
 def test_compare_dump_to_data():
-    from safeserialize import load
+    from safeserialize.all import load
     with open('dump.bin', 'rb') as f:
         deserialized_dump = load(f)
     from .roundtrip import DATA
@@ -60,7 +60,7 @@ def test_compare_dump_to_data():
     
 @ifdump
 def test_compare_dumps():
-    from safeserialize import load
+    from safeserialize.all import load
     with open('dump.bin', 'rb') as f:
         deserialized_dump = load(f)
     with open('curr.bin', 'rb') as f:

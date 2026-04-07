@@ -17,3 +17,5 @@ test = ["pytest", "numpy", "scipy", "pandas", "torch"]
 
 [tool.pytest.ini_options]
 required_plugins = [ "pytest-order" ]
+log_cli = true
+log_cli_level = "DEBUG"

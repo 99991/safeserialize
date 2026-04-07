@@ -1,10 +1,8 @@
-from safeserialize import dump, load, dump_base64, load_base64
-from safeserialize.core import num_bytes_signed_int
 from .roundtrip import *
-
 import tempfile
 
 def test_num_bytes_signed_int():
+    from safeserialize.builtins import num_bytes_signed_int
     assert num_bytes_signed_int(1) == 1
     assert num_bytes_signed_int(-1) == 1
     assert num_bytes_signed_int(127) == 1
@@ -19,6 +17,10 @@ def test_num_bytes_signed_int():
     assert num_bytes_signed_int(-2147483648) == 4
 
 def test_builtins():
+    
+    from safeserialize import dump, load, dumps, loads
+    
+
     for x in range(-300, 300):
         roundtrip(x)
 
@@ -56,10 +58,10 @@ def test_builtins():
 
     assert data == deserialized, f"{data} != {deserialized}"
 
-    assert data == load_base64(dump_base64(data))
-    
-
 def test_headerless():
+
+    from safeserialize import dumps, loads
+    
     data = 1
     assert len(roundtrip(data, header=False)) == 1
 

@@ -1,4 +1,3 @@
-from safeserialize import dumps, loads
 import os, collections
 
 DATA = collections.defaultdict(lambda: [])
@@ -53,6 +52,7 @@ CMP_TYPES = {
 }
 
 def _roundtrip(cmp_type, obj, header = True):
+    from safeserialize import dumps, loads
     append(cmp_type, obj)
     ser = dumps(obj, header = header)
     deser = loads(ser, header = header)

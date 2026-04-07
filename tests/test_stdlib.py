@@ -8,6 +8,9 @@ from collections import deque, Counter, OrderedDict
 from .roundtrip import *
 
 def test_stdlib():
+    
+    from safeserialize.stdlib.all import dumps, loads
+    
     a = datetime(2025, 8, 25, 22, 55, 47, 343776)
     b = datetime.fromtimestamp(0)
 

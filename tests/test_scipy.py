@@ -1,11 +1,10 @@
-from safeserialize import dumps, loads
-
 import scipy.sparse
 import numpy as np
 
 from .roundtrip import *
 
 def test_scipy():
+    from safeserialize.scipy import dumps, loads
     np.random.seed(0)
     m = 20
     n = 10

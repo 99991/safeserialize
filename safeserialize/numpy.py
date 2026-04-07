@@ -1,7 +1,6 @@
+from . import *
 import struct
 import ast
-
-from ..core import writer, reader, write_list, read_list
 
 _allowed_dtypes = {
     "bool",
@@ -24,7 +23,7 @@ _descriptors = {
 }
 
 @writer("numpy.ndarray")
-def write_ndarray(data, out, alignment=64):
+def write_ndarray(ser, data, out, alignment=64):
     dtype = str(data.dtype)
 
     if dtype not in _allowed_dtypes:
@@ -75,12 +74,12 @@ def write_ndarray(data, out, alignment=64):
     out.write(header)
 
     if dtype == "object":
-        write_list(data.ravel(order="C"), out)
+        ser._write_list(data.ravel(order="C"), out)
     else:
         out.write(data.tobytes())
 
 @reader("numpy.ndarray")
-def read_ndarray(f):
+def read_ndarray(ser, f):
     import numpy as np
 
     magic = b"\x93NUMPY\1\0"
@@ -122,7 +121,7 @@ def read_ndarray(f):
     assert descr in _descriptors, f"NumPy dtype {repr(descr)} not implemented"
 
     if descr == "|O":
-        objects = read_list(f)
+        objects = ser._read_list(f)
         return np.array(objects, dtype=object).reshape(shape)
     else:
         itemsize = int(descr[2:4].rstrip("["))
@@ -134,130 +133,130 @@ def read_ndarray(f):
         return np.frombuffer(buf, dtype=descr).reshape(shape).copy()
 
 @writer("numpy.bool")
-def write_bool(data, out):
+def write_bool(ser, data, out):
     out.write(struct.pack("<?", data))
 
 @reader("numpy.bool")
-def read_bool(f):
+def read_bool(ser, f):
     import numpy as np
     return np.bool_(struct.unpack("<?", f.read(1))[0])
 
 @writer("numpy.int32")
-def write_int32(data, out):
+def write_int32(ser, data, out):
     out.write(struct.pack("<i", data))
 
 @reader("numpy.int32")
-def read_int32(f):
+def read_int32(ser, f):
     import numpy as np
     return np.int32(struct.unpack("<i", f.read(4))[0])
 
 @writer("numpy.int64")
-def write_int64(data, out):
+def write_int64(ser, data, out):
     out.write(struct.pack("<q", data))
 
 @reader("numpy.int64")
-def read_int64(f):
+def read_int64(ser, f):
     import numpy as np
     return np.int64(struct.unpack("<q", f.read(8))[0])
 
 @writer("numpy.float16")
-def write_float16(data, out):
+def write_float16(ser, data, out):
     out.write(struct.pack("<e", data))
 
 @reader("numpy.float16")
-def read_float16(f):
+def read_float16(ser, f):
     import numpy as np
     return np.float16(struct.unpack("<e", f.read(2))[0])
 
 @writer("numpy.float32")
-def write_float32(data, out):
+def write_float32(ser, data, out):
     out.write(struct.pack("<f", data))
 
 @reader("numpy.float32")
-def read_float32(f):
+def read_float32(ser, f):
     import numpy as np
     return np.float32(struct.unpack("<f", f.read(4))[0])
 
 @writer("numpy.float64")
-def write_float64(data, out):
+def write_float64(ser, data, out):
     out.write(struct.pack("<d", data))
 
 @reader("numpy.float64")
-def read_float64(f):
+def read_float64(ser, f):
     import numpy as np
     return np.float64(struct.unpack("<d", f.read(8))[0])
 
 @writer("numpy.complex64")
-def write_complex64(data, out):
+def write_complex64(ser, data, out):
     out.write(struct.pack("<ff", data.real, data.imag))
 
 @reader("numpy.complex64")
-def read_complex64(f):
+def read_complex64(ser, f):
     import numpy as np
     real, imag = struct.unpack("<ff", f.read(8))
     return np.complex64(real + 1j * imag)
 
 @writer("numpy.complex128")
-def write_complex128(data, out):
+def write_complex128(ser, data, out):
     out.write(struct.pack("<dd", data.real, data.imag))
 
 @reader("numpy.complex128")
-def read_complex128(f):
+def read_complex128(ser, f):
     import numpy as np
     real, imag = struct.unpack("<dd", f.read(16))
     return np.complex128(real + 1j * imag)
 
 @writer("numpy.int8")
-def write_int8(data, out):
+def write_int8(ser, data, out):
     out.write(struct.pack("<b", data))
 
 @reader("numpy.int8")
-def read_int8(f):
+def read_int8(ser, f):
     import numpy as np
     return np.int8(struct.unpack("<b", f.read(1))[0])
 
 @writer("numpy.int16")
-def write_int16(data, out):
+def write_int16(ser, data, out):
     out.write(struct.pack("<h", data))
 
 @reader("numpy.int16")
-def read_int16(f):
+def read_int16(ser, f):
     import numpy as np
     return np.int16(struct.unpack("<h", f.read(2))[0])
 
 @writer("numpy.uint8")
-def write_uint8(data, out):
+def write_uint8(ser, data, out):
     out.write(struct.pack("<B", data))
 
 @reader("numpy.uint8")
-def read_uint8(f):
+def read_uint8(ser, f):
     import numpy as np
     return np.uint8(struct.unpack("<B", f.read(1))[0])
 
 @writer("numpy.uint16")
-def write_uint16(data, out):
+def write_uint16(ser, data, out):
     out.write(struct.pack("<H", data))
 
 @reader("numpy.uint16")
-def read_uint16(f):
+def read_uint16(ser, f):
     import numpy as np
     return np.uint16(struct.unpack("<H", f.read(2))[0])
 
 @writer("numpy.uint32")
-def write_uint32(data, out):
+def write_uint32(ser, data, out):
     out.write(struct.pack("<I", data))
 
 @reader("numpy.uint32")
-def read_uint32(f):
+def read_uint32(ser, f):
     import numpy as np
     return np.uint32(struct.unpack("<I", f.read(4))[0])
 
 @writer("numpy.uint64")
-def write_uint64(data, out):
+def write_uint64(ser, data, out):
     out.write(struct.pack("<Q", data))
 
 @reader("numpy.uint64")
-def read_uint64(f):
+def read_uint64(ser, f):
     import numpy as np
     return np.uint64(struct.unpack("<Q", f.read(8))[0])
 
@@ -281,15 +280,23 @@ dtypes = [
     ("ObjectDType", "object"),
 ]
 
+def make_dtype_reader_writer(type_name, dtype_str):
+    @writer(f"numpy.dtypes.{type_name}")
+    def write_numpy_dtype(ser, data, out):
+        pass
+
+    @reader(f"numpy.dtypes.{type_name}")
+    def read_numpy_dtype(ser, f):
+        import numpy as np
+        return np.dtype(dtype_str)
+
+    read_numpy_dtype.__name__ += f'_{dtype_str}'
+    globals().update({
+        f"write_numpy_dtype_{dtype_str}": write_numpy_dtype,
+        read_numpy_dtype.__name__: read_numpy_dtype,
+    })
+
 for type_name, dtype_str in dtypes:
-    def make_dtype_reader_writer(type_name, dtype_str):
-        @writer(f"numpy.dtypes.{type_name}")
-        def writer_func(data, out):
-            pass
-
-        @reader(f"numpy.dtypes.{type_name}")
-        def reader_func(f):
-            import numpy as np
-            return np.dtype(dtype_str)
-
     make_dtype_reader_writer(type_name, dtype_str)
+
+serializer.harvest(globals())

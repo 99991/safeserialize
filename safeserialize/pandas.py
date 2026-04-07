@@ -1,7 +1,7 @@
-import warnings
-from safeserialize import write, read
-from ..core import writer as core_writer, reader as core_reader
+from . import *
+from . import pytz, writer as core_writer, reader as core_reader
 from .numpy import _allowed_dtypes as _numpy_dtypes
+import warnings
 
 VERSION = 1
 
@@ -36,7 +36,9 @@ def writer(type_str):
         def wrapper(*args, **kwargs):
             _warn_experimental()
             return func(*args, **kwargs)
-        return original_writer(wrapper)
+        wrapped = original_writer(wrapper)
+        wrapped.__name__ = 'wrapped_' + func.__name__
+        return wrapped
     return decorator
 
 def reader(type_str):
@@ -45,126 +47,128 @@ def reader(type_str):
         def wrapper(*args, **kwargs):
             _warn_experimental()
             return func(*args, **kwargs)
-        return original_reader(wrapper)
+        wrapped = original_reader(wrapper)
+        wrapped.__name__ = 'wrapped_' + func.__name__
+        return wrapped
     return decorator
 
 @writer("pandas._libs.missing.NAType")
-def write_na_type(data, out):
-    write(VERSION, out)
+def write_na_type(ser, data, out):
+    ser._write(VERSION, out)
 
 @reader("pandas._libs.missing.NAType")
-def read_na_type(f):
-    version = read(f)
+def read_na_type(ser, f):
+    version = ser._read(f)
     assert version == VERSION
     import pandas as pd
     return pd.NA
 
 @writer("pandas.core.indexes.range.RangeIndex")
-def write_range_index(index, out):
-    write(index.start, out)
-    write(index.stop, out)
-    write(index.step, out)
+def write_range_index(ser, index, out):
+    ser._write(index.start, out)
+    ser._write(index.stop, out)
+    ser._write(index.step, out)
 
 @reader("pandas.core.indexes.range.RangeIndex")
-def read_range_index(f):
-    start = read(f)
-    stop = read(f)
-    step = read(f)
+def read_range_index(ser, f):
+    start = ser._read(f)
+    stop = ser._read(f)
+    step = ser._read(f)
     import pandas as pd
     return pd.RangeIndex(start, stop, step)
 
 @writer("pandas.core.indexes.frozen.FrozenList")
-def writer_frozen_list(data, out):
-    write(list(data), out)
+def writer_frozen_list(ser, data, out):
+    ser._write(list(data), out)
 
 @reader("pandas.core.indexes.frozen.FrozenList")
-def reader_frozen_list(f):
-    data = read(f)
+def reader_frozen_list(ser, f):
+    data = ser._read(f)
     import pandas
     return pandas.core.indexes.frozen.FrozenList(data)
 
 @writer("pandas.core.indexes.base.Index")
-def write_base_index(index, out):
+def write_base_index(ser, index, out):
     dtype = index.dtype
     dtype_name = dtype.name
 
     assert dtype_name in _numpy_dtypes
-    write(index.name, out)
-    write(dtype_name, out)
-    write(index.names, out)
-    write(index._data, out)
+    ser._write(index.name, out)
+    ser._write(dtype_name, out)
+    ser._write(index.names, out)
+    ser._write(index._data, out)
 
 @reader("pandas.core.indexes.base.Index")
-def reader_base_index(f):
+def reader_base_index(ser, f):
     import pandas as pd
 
-    name = read(f)
-    dtype_name = read(f)
+    name = ser._read(f)
+    dtype_name = ser._read(f)
     assert dtype_name in _numpy_dtypes
-    names = read(f)
-    data = read(f)
+    names = ser._read(f)
+    data = ser._read(f)
 
     index = pd.Index(data, dtype=dtype_name, name=name)
     index.names = names
     return index
 
 @writer("pandas.core.series.Series")
-def write_series(series, out):
+def write_series(ser, series, out):
     import numpy
     import pandas
 
     values = series.values
     values_dtype_name = values.dtype.name
 
-    write(VERSION, out)
-    write(series.name, out)
-    write(series.dtype, out)
-    write(series.values.dtype, out)
-    write(series.index, out)
+    ser._write(VERSION, out)
+    ser._write(series.name, out)
+    ser._write(series.dtype, out)
+    ser._write(series.values.dtype, out)
+    ser._write(series.index, out)
 
     if values_dtype_name == "string":
         assert isinstance(values, pandas.core.arrays.string_.StringArray)
-        write(values.tolist(), out)
+        ser._write(values.tolist(), out)
 
     elif values_dtype_name in _pandas_dtypes:
-        write(values.isna(), out)
+        ser._write(values.isna(), out)
         values_numpy = values._data
         assert isinstance(values_numpy, numpy.ndarray)
-        write(values_numpy, out)
+        ser._write(values_numpy, out)
 
     elif values_dtype_name in _numpy_dtypes:
         assert isinstance(values, numpy.ndarray)
-        write(values, out)
+        ser._write(values, out)
 
     elif values_dtype_name == "category":
-        write(values.categories, out)
+        ser._write(values.categories, out)
         assert isinstance(values.codes, numpy.ndarray)
-        write(values.codes, out)
-        write(values.ordered, out)
+        ser._write(values.codes, out)
+        ser._write(values.ordered, out)
 
     else:
         raise ValueError(f"Pandas dtype {values_dtype_name} not implemented")
 
 @reader("pandas.core.series.Series")
-def read_series(f):
+def read_series(ser, f):
     import pandas as pd
     import numpy as np
 
-    version = read(f)
+    version = ser._read(f)
     assert version == VERSION
-    series_name = read(f)
-    series_dtype = read(f)
-    values_dtype = read(f)
+    series_name = ser._read(f)
+    series_dtype = ser._read(f)
+    values_dtype = ser._read(f)
     values_dtype_name = values_dtype.name
-    index = read(f)
+    index = ser._read(f)
 
     if values_dtype_name == "string":
-        values = read(f)
+        values = ser._read(f)
         array = pd.array(values, dtype="string")
         series = pd.Series(array, dtype="string", index=index)
 
     elif values_dtype_name in _numpy_dtypes:
-        values = read(f)
+        values = ser._read(f)
 
         # NumPy datetime64[ns] does not have timezone information.
         # But pd.Series does, so if the series_dtype contains a timezone,
@@ -181,17 +185,17 @@ def read_series(f):
             series = pd.Series(values, dtype=series_dtype, index=index)
 
     elif values_dtype_name in _pandas_dtypes:
-        isna = read(f)
+        isna = ser._read(f)
         assert isna.dtype == np.bool_
-        values = read(f)
+        values = ser._read(f)
         series = pd.Series(values, dtype=series_dtype, index=index)
         series = series.mask(isna)
 
     elif values_dtype_name == "category":
-        categories = read(f)
-        codes = read(f)
+        categories = ser._read(f)
+        codes = ser._read(f)
         # `ordered` is unused, already stored in categories
-        ordered = read(f)
+        ordered = ser._read(f)
         assert isinstance(ordered, bool)
         categorical = pd.Categorical.from_codes(codes, categories)
         series = pd.Series(categorical, dtype=series_dtype, index=index)
@@ -204,29 +208,29 @@ def read_series(f):
     return series
 
 @writer("pandas.core.frame.DataFrame")
-def write_dataframe(data, out):
-    write(VERSION, out)
+def write_dataframe(ser, data, out):
+    ser._write(VERSION, out)
 
     m, n = data.shape
-    write(m, out)
-    write(n, out)
-    write(data.index, out)
+    ser._write(m, out)
+    ser._write(n, out)
+    ser._write(data.index, out)
 
     for _, series in data.items():
-        write(series, out)
+        ser._write(series, out)
 
 @reader("pandas.core.frame.DataFrame")
-def read_dataframe(f):
+def read_dataframe(ser, f):
     import pandas as pd
 
-    version = read(f)
+    version = ser._read(f)
     assert version == VERSION
 
-    m = read(f)
-    n = read(f)
-    index = read(f)
+    m = ser._read(f)
+    n = ser._read(f)
+    index = ser._read(f)
 
-    series = [read(f) for _ in range(n)]
+    series = [ser._read(f) for _ in range(n)]
 
     df = pd.concat(series, axis=1)
     df.index = index
@@ -250,117 +254,123 @@ pandas_dtypes = [
     ("pandas.core.arrays.string_.StringDtype", "StringDtype"),
 ]
 
+def make_dtype_reader_writer(dtype_path, dtype_name):
+    @writer(dtype_path)
+    def write_pandas_dtype(ser, data, out):
+        pass
+
+    @reader(dtype_path)
+    def read_pandas_dtype(ser, f):
+        import pandas as pd
+        return getattr(pd, dtype_name)()
+
+    read_pandas_dtype.__name__ += f'_{dtype_path}'
+    globals().update({
+        f"write_pandas_dtype_{dtype_path}": write_pandas_dtype,
+        read_pandas_dtype.__name__: read_pandas_dtype,
+    })    
+        
 for dtype_path, dtype_name in pandas_dtypes:
-    def make_dtype_reader_writer(dtype_path, dtype_name):
-        @writer(dtype_path)
-        def writer_func(data, out):
-            pass
-
-        @reader(dtype_path)
-        def reader_func(f):
-            import pandas as pd
-            return getattr(pd, dtype_name)()
-
     make_dtype_reader_writer(dtype_path, dtype_name)
 
 @writer("pandas.core.dtypes.dtypes.CategoricalDtype")
-def write_CategoricalDtype(data, out):
+def write_CategoricalDtype(ser, data, out):
     import pandas
     assert isinstance(data.categories, pandas.core.indexes.base.Index)
-    write(data.categories, out)
-    write(data.ordered, out)
+    ser._write(data.categories, out)
+    ser._write(data.ordered, out)
 
 @reader("pandas.core.dtypes.dtypes.CategoricalDtype")
-def read_CategoricalDtype(f):
+def read_CategoricalDtype(ser, f):
     import pandas
-    categories = read(f)
-    ordered = read(f)
+    categories = ser._read(f)
+    ordered = ser._read(f)
     return pandas.CategoricalDtype(categories, ordered=ordered)
 
 @writer("pandas.core.dtypes.dtypes.DatetimeTZDtype")
-def write_DatetimeTZDtype(data, out):
-    write(data.unit, out)
-    write(data.tz, out)
+def write_DatetimeTZDtype(ser, data, out):
+    ser._write(data.unit, out)
+    ser._write(data.tz, out)
 
 @reader("pandas.core.dtypes.dtypes.DatetimeTZDtype")
-def read_DatetimeTZDtype(f):
-    unit = read(f)
-    tz = read(f)
+def read_DatetimeTZDtype(ser, f):
+    unit = ser._read(f)
+    tz = ser._read(f)
     import pandas
     return pandas.DatetimeTZDtype(unit, tz)
 
 @writer("pandas._libs.tslibs.timedeltas.Timedelta")
-def write_Timedelta(data, out):
-    write(data.value, out)
-    write(data.unit, out)
+def write_Timedelta(ser, data, out):
+    ser._write(data.value, out)
+    ser._write(data.unit, out)
 
 @reader("pandas._libs.tslibs.timedeltas.Timedelta")
-def read_Timedelta(f):
-    value = read(f)
-    unit = read(f)
+def read_Timedelta(ser, f):
+    value = ser._read(f)
+    unit = ser._read(f)
     import pandas
     return pandas.Timedelta(value, unit=unit)
 
 @writer("pandas.core.indexes.datetimes.DatetimeIndex")
-def write_DatetimeIndex(index, out):
-    write(index.values, out)
-    write(index.tz, out)
-    write(index.name, out)
+def write_DatetimeIndex(ser, index, out):
+    ser._write(index.values, out)
+    ser._write(index.tz, out)
+    ser._write(index.name, out)
 
 @reader("pandas.core.indexes.datetimes.DatetimeIndex")
-def read_DatetimeIndex(f):
+def read_DatetimeIndex(ser, f):
     import pandas as pd
-    values = read(f)
-    tz = read(f)
-    name = read(f)
+    values = ser._read(f)
+    tz = ser._read(f)
+    name = ser._read(f)
     values = pd.Series(values, name=name)
     values = values.dt.tz_localize("UTC").dt.tz_convert(tz)
     return pd.DatetimeIndex(values)
 
 @writer("pandas.core.indexes.timedeltas.TimedeltaIndex")
-def write_TimedeltaIndex(index, out):
-    write(index.values, out)
-    write(index.name, out)
-    write(index.freqstr, out)
+def write_TimedeltaIndex(ser, index, out):
+    ser._write(index.values, out)
+    ser._write(index.name, out)
+    ser._write(index.freqstr, out)
 
 @reader("pandas.core.indexes.timedeltas.TimedeltaIndex")
-def read_TimedeltaIndex(f):
+def read_TimedeltaIndex(ser, f):
     import pandas as pd
-    values = read(f)
-    name = read(f)
-    freq = read(f)
+    values = ser._read(f)
+    name = ser._read(f)
+    freq = ser._read(f)
     return pd.TimedeltaIndex(values, name=name, freq=freq)
 
 @writer("pandas.core.indexes.category.CategoricalIndex")
-def write_CategoricalIndex(index, out):
-    write(index.codes, out)
-    write(index.categories, out)
-    write(index.ordered, out)
-    write(index.name, out)
+def write_CategoricalIndex(ser, index, out):
+    ser._write(index.codes, out)
+    ser._write(index.categories, out)
+    ser._write(index.ordered, out)
+    ser._write(index.name, out)
 
 @reader("pandas.core.indexes.category.CategoricalIndex")
-def read_CategoricalIndex(f):
-    codes = read(f)
-    categories = read(f)
-    ordered = read(f)
-    name = read(f)
+def read_CategoricalIndex(ser, f):
+    codes = ser._read(f)
+    categories = ser._read(f)
+    ordered = ser._read(f)
+    name = ser._read(f)
     import pandas as pd
     cat = pd.Categorical.from_codes(codes, categories, ordered=ordered)
     return pd.CategoricalIndex(cat, name=name)
 
 @writer("pandas.core.indexes.interval.IntervalIndex")
-def write_interval_index(index, out):
-    write(index.left, out)
-    write(index.right, out)
-    write(index.closed, out)
-    write(index.name, out)
+def write_interval_index(ser, index, out):
+    ser._write(index.left, out)
+    ser._write(index.right, out)
+    ser._write(index.closed, out)
+    ser._write(index.name, out)
 
 @reader("pandas.core.indexes.interval.IntervalIndex")
-def read_interval_index(f):
-    left = read(f)
-    right = read(f)
-    closed = read(f)
-    name = read(f)
+def read_interval_index(ser, f):
+    left = ser._read(f)
+    right = ser._read(f)
+    closed = ser._read(f)
+    name = ser._read(f)
     import pandas as pd
     return pd.IntervalIndex.from_arrays(
         left=left,
@@ -369,19 +379,19 @@ def read_interval_index(f):
         name=name)
 
 @writer("pandas.core.indexes.multi.MultiIndex")
-def write_MultiIndex(index, out):
-    write(index.levels, out)
-    write(index.codes, out)
-    write(index.names, out)
-    write(index.sortorder, out)
+def write_MultiIndex(ser, index, out):
+    ser._write(index.levels, out)
+    ser._write(index.codes, out)
+    ser._write(index.names, out)
+    ser._write(index.sortorder, out)
 
 @reader("pandas.core.indexes.multi.MultiIndex")
-def read_MultiIndex(f):
+def read_MultiIndex(ser, f):
     import pandas as pd
-    levels = read(f)
-    codes = read(f)
-    names = read(f)
-    sortorder = read(f)
+    levels = ser._read(f)
+    codes = ser._read(f)
+    names = ser._read(f)
+    sortorder = ser._read(f)
     return pd.MultiIndex(
         levels=levels,
         codes=codes,
@@ -389,15 +399,18 @@ def read_MultiIndex(f):
         sortorder=sortorder)
 
 @writer("pandas.core.indexes.period.PeriodIndex")
-def write_PeriodIndex(index, out):
-    write(index.name, out)
-    write(index.freqstr, out)
-    write(index.asi8, out)
+def write_PeriodIndex(ser, index, out):
+    ser._write(index.name, out)
+    ser._write(index.freqstr, out)
+    ser._write(index.asi8, out)
 
 @reader("pandas.core.indexes.period.PeriodIndex")
-def read_PeriodIndex(f):
+def read_PeriodIndex(ser, f):
     import pandas as pd
-    name = read(f)
-    freq = read(f)
-    ordinals = read(f)
+    name = ser._read(f)
+    freq = ser._read(f)
+    ordinals = ser._read(f)
     return pd.PeriodIndex.from_ordinals(ordinals, freq=freq, name=name)
+
+serializer.harvest(globals())
+#serializer.debug()
