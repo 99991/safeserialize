@@ -1,9 +1,8 @@
-from safeserialize import dump, load, dumps, loads, dump_base64, load_base64
-from safeserialize.core import num_bytes_signed_int
-
+from .roundtrip import *
 import tempfile
 
 def test_num_bytes_signed_int():
+    from safeserialize.builtins import num_bytes_signed_int
     assert num_bytes_signed_int(1) == 1
     assert num_bytes_signed_int(-1) == 1
     assert num_bytes_signed_int(127) == 1
@@ -18,17 +17,19 @@ def test_num_bytes_signed_int():
     assert num_bytes_signed_int(-2147483648) == 4
 
 def test_builtins():
-    for x in range(-300, 300):
-        data = dumps(x)
-        y = loads(data)
+    
+    from safeserialize import dump, load, dumps, loads
+    
 
-        assert x == y, f"{x} != {y}"
+    for x in range(-300, 300):
+        roundtrip(x)
 
     data = {
         1: [1, 2.0, 3, float("inf"), float("-inf")],
         3: [4, 5, 6],
         (1, 2): 3,
-        frozenset([7, "foo", 9]): 4,
+        # max one member because of test_binary_compat: frozenset does not guarantee order
+        frozenset([7]): 4,
         123456789: 1 << 256,
         b"key": bytearray(b"value"),
         "float": 3.14159265358979323846,
@@ -43,10 +44,11 @@ def test_builtins():
         "NotImplemented": NotImplemented,
     }
 
-    serialized = dumps(data)
+    roundtrip(data)
 
-    deserialized = loads(serialized)
-
+    # Test multi-member frozenset separately, avoiding the roundtrip function
+    data = frozenset([7, "foo", 9])
+    deserialized = loads(dumps(data))
     assert data == deserialized, f"{data} != {deserialized}"
 
     with tempfile.NamedTemporaryFile(delete=True) as temp_file:
@@ -56,22 +58,19 @@ def test_builtins():
 
     assert data == deserialized, f"{data} != {deserialized}"
 
-    assert data == load_base64(dump_base64(data))
-
 def test_headerless():
+
+    from safeserialize import dumps, loads
+    
     data = 1
-
-    serialized = dumps(data, header=False)
-
-    assert len(serialized) == 1
-
-    deserialized = loads(serialized, header=False)
-
-    assert data == deserialized
+    assert len(roundtrip(data, header=False)) == 1
 
 def test_constants():
-    assert loads(dumps(True)) is True
-    assert loads(dumps(False)) is False
-    assert loads(dumps(None)) is None
-    assert loads(dumps(...)) is ...
-    assert loads(dumps(NotImplemented)) is NotImplemented
+    roundtrip_const(True)
+    roundtrip_const(False)
+    roundtrip_const(None)
+    roundtrip_const(...)
+    roundtrip_const(NotImplemented)
+
+def test_exceptions():
+    roundtrip_exc(RuntimeError("test error"))

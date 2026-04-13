@@ -1,27 +1,11 @@
-from safeserialize import dumps, loads
 import pandas as pd
 import numpy as np
 import random
-from safeserialize.types.numpy import _allowed_dtypes as numpy_dtypes
 
-# Functions to test whether data == loads(dumps(data))
-# for pd.Series, pd.DataFrame and pd.Index
-def roundtrip_series(s):
-    serialized_data = dumps(s)
-    deserialized_series = loads(serialized_data)
-    pd.testing.assert_series_equal(s, deserialized_series)
-
-def roundtrip_df(df):
-    serialized_data = dumps(df)
-    deserialized_df = loads(serialized_data)
-    pd.testing.assert_frame_equal(df, deserialized_df)
-
-def roundtrip_index(index):
-    serialized_data = dumps(index)
-    deserialized_index = loads(serialized_data)
-    pd.testing.assert_index_equal(index, deserialized_index)
+from .roundtrip import *
 
 def test_pandas():
+    from safeserialize.pandas import dumps, loads
     # Test various data types
     a = pd.Series([1, 2, None, 4], dtype="Int64", name="int_nullable")
     b = pd.Series([3.14, np.nan, 2.71828], dtype="Float32", name="float32")
@@ -70,6 +54,8 @@ def test_pandas():
     roundtrip_df(df)
 
 def test_categories():
+    random.seed(0)
+    from safeserialize.pandas import dumps, loads
     for categories in [
         [1, 2, 3, 4],
         [1, 2, 3, 4, None],
@@ -96,12 +82,15 @@ def test_categories():
     roundtrip_series(series)
 
 def test_numpy_dtypes():
-    for dtype in numpy_dtypes:
+    from safeserialize.pandas import dumps, loads
+    from safeserialize.numpy import _allowed_dtypes as numpy_dtypes
+    for dtype in sorted(numpy_dtypes): # to test binary compat
         data = [0, 1, 0, 1, 0, 0, 0, 1, 1, 1]
         s = pd.Series(data, dtype=dtype, name=f"numpy_{dtype}")
         roundtrip_series(s)
 
 def test_datetime():
+    from safeserialize.pandas import dumps, loads
     df = pd.DataFrame({
         "year": [2025, 2026],
         "month": [1, 2],
@@ -151,11 +140,13 @@ def test_datetime():
     roundtrip_df(df)
 
 def test_datetime_index_naive():
+    from safeserialize.pandas import dumps, loads
     index = pd.to_datetime(["2023-01-01", "2023-02-01", "2023-03-01"])
     index.name = "Karl"
     roundtrip_index(index)
 
 def test_timedelta_index():
+    from safeserialize.pandas import dumps, loads
     index = pd.timedelta_range(
         start="1 day",
         end="5 days",
@@ -169,6 +160,7 @@ def test_timedelta_index():
     roundtrip_df(df)
 
 def test_interval_index():
+    from safeserialize.pandas import dumps, loads
     index = pd.interval_range(
         start=0,
         end=20,
@@ -195,6 +187,7 @@ def test_interval_index():
     assert test_interval in df.index
 
 def test_interval_index_with_datetime():
+    from safeserialize.pandas import dumps, loads
     start = pd.to_datetime("1/1/2025").tz_localize("Europe/Berlin")
     end = pd.to_datetime("12/31/2025").tz_localize("Europe/Berlin")
     index = pd.interval_range(
@@ -215,6 +208,7 @@ def test_interval_index_with_datetime():
     roundtrip_df(df)
 
 def test_period_index():
+    from safeserialize.pandas import dumps, loads
     index = pd.period_range(
         start="2000-01-01",
         end="2001-01-01",
@@ -230,6 +224,7 @@ def test_period_index():
     roundtrip_df(df)
 
 def test_multi_index():
+    from safeserialize.pandas import dumps, loads
     arrays = [[1, 1, 2, 2], ["red", "blue", "red", "blue"]]
     names = ["number", "color"]
     index = pd.MultiIndex.from_arrays(arrays, sortorder=1, names=names)
@@ -242,6 +237,7 @@ def test_multi_index():
     roundtrip_df(df)
 
 def test_categorical_index_advanced():
+    from safeserialize.pandas import dumps, loads
     # With None in data
     categories = ["a", "b", "c"]
     data = ["a", "b", "a", None, "c"]

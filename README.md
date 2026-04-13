@@ -35,6 +35,7 @@ It should mostly be a drop-in replacement for `pickle`.
 
 ```python
 from safeserialize import dumps, loads
+import safeserialize.stdlib.all
 from datetime import datetime
 from decimal import Decimal
 from collections import Counter
@@ -121,15 +122,6 @@ assert isinstance(serialized_str, str)
 deserialized_data = loads(base64.b64decode(serialized_str))
 
 assert data == deserialized_data
-
-# For brevity, the following wrappers do the same as the code above.
-from safeserialize import dump_base64, load_base64
-
-serialized_str = dump_base64(data)
-
-assert data == load_base64(serialized_str)
-
-print("Serialization and deserialization successful!")
 ```
 
 * Q: The serialized data is too big. How do I make it smaller?

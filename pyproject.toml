@@ -14,3 +14,8 @@ test = ["pytest", "numpy", "scipy", "pandas", "torch"]
 [project.urls]
 "Homepage" = "https://github.com/99991/safeserialize"
 "Bug Tracker" = "https://github.com/99991/safeserialize/issues"
+
+[tool.pytest.ini_options]
+required_plugins = [ "pytest-order" ]
+log_cli = true
+log_cli_level = "DEBUG"

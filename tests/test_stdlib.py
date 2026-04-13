@@ -5,9 +5,12 @@ from datetime import datetime
 from fractions import Fraction
 from collections import deque, Counter, OrderedDict
 
-from safeserialize import dumps, loads
+from .roundtrip import *
 
 def test_stdlib():
+    
+    from safeserialize.stdlib.all import dumps, loads
+    
     a = datetime(2025, 8, 25, 22, 55, 47, 343776)
     b = datetime.fromtimestamp(0)
 
@@ -26,8 +29,4 @@ def test_stdlib():
         "ordered_dict": OrderedDict([("apple", 1), ("banana", 2)]),
     }
 
-    serialized = dumps(data)
-
-    deserialized = loads(serialized)
-
-    assert data == deserialized, f"{data} != {deserialized}"
+    roundtrip(data)

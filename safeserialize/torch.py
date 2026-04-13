@@ -1,4 +1,5 @@
-from ..core import writer, reader, write, read
+from . import *
+from . import numpy
 
 _allowed_dtypes = {
     "bool",
@@ -11,20 +12,22 @@ _allowed_dtypes = {
 VERSION = 1
 
 @writer("torch.Tensor")
-def write_tensor(data, out):
-    write(VERSION, out)
+def write_tensor(ser, data, out):
+    ser._write(VERSION, out)
     device = data.device
-    write(str(device), out)
+    ser._write(str(device), out)
     data_np = data.detach().cpu().numpy()
     assert str(data_np.dtype) in _allowed_dtypes
-    write(data_np, out)
+    ser._write(data_np, out)
 
 @reader("torch.Tensor")
-def read_tensor(f):
-    version = read(f)
+def read_tensor(ser, f):
+    version = ser._read(f)
     assert version == VERSION
-    device = read(f)
+    device = ser._read(f)
     import torch
-    data = read(f)
+    data = ser._read(f)
     assert str(data.dtype) in _allowed_dtypes
     return torch.from_numpy(data).to(device)
+
+serializer.harvest(globals())

@@ -1,10 +1,8 @@
-from safeserialize import dumps, loads
 import pytz
-from safeserialize.types.pytz import _timezones
+from .roundtrip import *
 
 def test_pytz():
-    for name in _timezones:
-        timezone = pytz.timezone(name)
-        serialized = dumps(timezone)
-        deserialized = loads(serialized)
-        assert timezone == deserialized
+    from safeserialize.pytz import dumps, loads
+    for tz_name in pytz.all_timezones:
+        roundtrip(pytz.timezone(tz_name))
+    roundtrip(pytz.UTC)

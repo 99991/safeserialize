@@ -1,10 +1,13 @@
-from safeserialize import dumps, loads
 import io
 import tempfile
 import numpy as np
-from safeserialize.types.numpy import write_ndarray, read_ndarray
+
+from .roundtrip import *
 
 def test_numpy_serialization():
+    
+    from safeserialize.numpy import dumps, loads
+    
     np.random.seed(0)
 
     x = np.array([1, 2, 3])
@@ -31,15 +34,12 @@ def test_numpy_serialization():
         "complex128": np.complex128(1 + 2j),
     }
 
-    serialized = dumps(data)
-
-    deserialized = loads(serialized)
-
-    for key, expected_value in data.items():
-        value = deserialized[key]
-        assert np.array_equal(value, expected_value)
+    for value in data.values():
+        roundtrip_array(value)
 
 def test_write_ndarray():
+    from safeserialize.numpy import write_ndarray
+    
     # Verify write_ndarray against NumPy np.save
     np.random.seed(0)
 
@@ -51,13 +51,14 @@ def test_write_ndarray():
         expected = tmp.read()
 
     f = io.BytesIO()
-    write_ndarray(a, f)
+    write_ndarray(None, a, f)
     f.seek(0)
     data = f.read()
 
     assert data == expected
 
 def test_read_ndarray():
+    from safeserialize.numpy import read_ndarray
     np.random.seed(0)
 
     a = np.random.rand(12, 13)
@@ -66,12 +67,14 @@ def test_read_ndarray():
         np.save(tmp.name, a)
         tmp.seek(0)
 
-        b = read_ndarray(tmp)
+        b = read_ndarray(None, tmp)
 
     assert np.array_equal(a, b)
     assert np.array_equal(a, b)
 
 def test_transposed():
+    from safeserialize import dumps, loads
+    import safeserialize.numpy
+    
     A = np.random.rand(2, 3)
-
-    assert np.array_equal(A.T, loads(dumps(A.T)))
+    roundtrip_array(A.T)
